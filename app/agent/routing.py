@@ -19,31 +19,42 @@ class KnowledgeRouter:
     BOTH_TARGET = "both"
 
     SELF_HINTS = [
-        "我",
-        "我的",
-        "本人",
-        "孙雪海",
-        "个人简历",
-        "简历",
+        "\u6211",
+        "\u6211\u7684",
+        "\u672c\u4eba",
+        "\u5b59\u96ea\u6d77",
+        "\u4e2a\u4eba\u7b80\u5386",
+        "\u4f60\u81ea\u5df1",
+        "\u4f60\u7684\u7ecf\u5386",
+        "\u4f60\u7684\u9879\u76ee",
+        "sun xuehai",
+        "your resume",
     ]
     UPLOAD_HINTS = [
-        "上传",
-        "上传的",
-        "文件",
-        "文档",
-        "附件",
-        "材料",
+        "\u4e0a\u4f20",
+        "\u4e0a\u4f20\u7684",
+        "\u6587\u4ef6",
+        "\u6587\u6863",
+        "\u9644\u4ef6",
+        "\u6750\u6599",
+        "\u8fd9\u4efdpdf",
+        "\u8fd9\u4e2apdf",
+        "\u4e0a\u4f20\u6587\u6863",
+        "upload",
+        "uploaded",
+        "attachment",
         "pdf",
-        "这份pdf",
-        "这个pdf",
-        "知识库",
     ]
     BOTH_HINTS = [
-        "综合",
-        "一起",
-        "对比",
-        "结合",
-        "同时",
+        "\u7efc\u5408",
+        "\u5bf9\u6bd4",
+        "\u7ed3\u5408",
+        "\u4e00\u8d77",
+        "\u540c\u65f6",
+        "\u5bf9\u7167",
+        "both",
+        "compare",
+        "together",
     ]
 
     def __init__(self):
@@ -54,13 +65,11 @@ class KnowledgeRouter:
             return RouteDecision(target=self.SELF_TARGET, reason="no_uploaded_docs")
 
         lowered = question.lower()
-        self_hit = any(hint in question for hint in self.SELF_HINTS)
-        upload_hit = any(hint in lowered or hint in question for hint in self.UPLOAD_HINTS)
-        both_hit = any(hint in question for hint in self.BOTH_HINTS)
+        self_hit = any(hint in question or hint in lowered for hint in self.SELF_HINTS)
+        upload_hit = any(hint in question or hint in lowered for hint in self.UPLOAD_HINTS)
+        both_hit = any(hint in question or hint in lowered for hint in self.BOTH_HINTS)
 
-        if both_hit and self_hit and upload_hit:
-            return RouteDecision(target=self.BOTH_TARGET, reason="keyword_both")
-        if both_hit and upload_hit:
+        if both_hit:
             return RouteDecision(target=self.BOTH_TARGET, reason="keyword_both")
         if upload_hit and not self_hit:
             return RouteDecision(target=self.UPLOAD_TARGET, reason="keyword_upload")
@@ -73,21 +82,21 @@ class KnowledgeRouter:
             {
                 "role": "system",
                 "content": (
-                    "你是知识库路由器。"
-                    "你只能输出以下三个标签之一：self_resume、uploaded_docs、both。"
-                    "如果问题更像在问系统内置的个人简历，输出 self_resume。"
-                    "如果问题明确指向用户上传文档，输出 uploaded_docs。"
-                    "如果指代不清或两个知识库都可能相关，输出 both。"
+                    "You are a routing classifier. "
+                    "Return only one label from: self_resume, uploaded_docs, both. "
+                    "Use self_resume for the built-in personal resume, "
+                    "uploaded_docs for the currently uploaded document, "
+                    "both when the question should combine or compare both sources."
                 ),
             },
             {
                 "role": "user",
                 "content": (
-                    f"问题：{question}\n"
-                    "可选知识库：\n"
-                    "- self_resume：系统内置的个人简历\n"
-                    "- uploaded_docs：用户上传的文档\n\n"
-                    "只输出一个标签。"
+                    f"Question: {question}\n"
+                    "Available sources:\n"
+                    "- self_resume: built-in personal resume\n"
+                    "- uploaded_docs: uploaded PDF document\n"
+                    "Return one label only."
                 ),
             },
         ]

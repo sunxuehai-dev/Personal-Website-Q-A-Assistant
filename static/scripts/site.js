@@ -4,6 +4,7 @@ const chatForm = document.getElementById("chat-form");
 const chatInput = document.getElementById("chat-input");
 const uploadInput = document.getElementById("resume-upload");
 const knowledgeStatus = document.getElementById("knowledge-status");
+const clearUploadButton = document.getElementById("clear-upload");
 const suggestionChips = document.querySelectorAll(".suggestion-chip");
 
 let useUploadedDocs = false;
@@ -43,6 +44,35 @@ async function uploadDocument(file) {
     appendMessage("assistant", `\u5df2\u5b8c\u6210\u4e0a\u4f20\u5e76\u81ea\u52a8\u704c\u5e93\uff1a${file.name}`);
 }
 
+async function fetchUploadStatus() {
+    const response = await fetch(`${apiBase}/upload_status`);
+    if (!response.ok) {
+        throw new Error("\u65e0\u6cd5\u83b7\u53d6\u4e0a\u4f20\u72b6\u6001");
+    }
+    return response.json();
+}
+
+async function clearUploadedDocs() {
+    const response = await fetch(`${apiBase}/upload_status`, {
+        method: "DELETE",
+    });
+    if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        throw new Error(payload.detail || "\u65e0\u6cd5\u6e05\u7a7a\u4e0a\u4f20\u6587\u6863");
+    }
+    return response.json();
+}
+
+function renderUploadStatus(payload) {
+    if (payload.has_uploaded_docs && payload.active_file) {
+        useUploadedDocs = true;
+        knowledgeStatus.textContent = `\u5df2\u52a0\u8f7d\u4e0a\u4f20\u6587\u6863\uff1a${payload.active_file}`;
+        return;
+    }
+    useUploadedDocs = false;
+    knowledgeStatus.textContent = "\u5f53\u524d\u6a21\u5f0f\uff1a\u4e2a\u4eba\u7b80\u5386\u95ee\u7b54";
+}
+
 async function askQuestion(question) {
     const response = await fetch(`${apiBase}/chat`, {
         method: "POST",
@@ -72,6 +102,16 @@ uploadInput?.addEventListener("change", async (event) => {
         appendMessage("assistant", `\u4e0a\u4f20\u5931\u8d25\uff1a${error.message}`);
     } finally {
         uploadInput.value = "";
+    }
+});
+
+clearUploadButton?.addEventListener("click", async () => {
+    try {
+        const payload = await clearUploadedDocs();
+        renderUploadStatus(payload);
+        appendMessage("assistant", "\u5df2\u6e05\u7a7a\u4e0a\u4f20\u77e5\u8bc6\u5e93\uff0c\u5df2\u6062\u590d\u4e3a\u4e2a\u4eba\u7b80\u5386\u95ee\u7b54\u6a21\u5f0f\u3002");
+    } catch (error) {
+        appendMessage("assistant", `\u6e05\u7a7a\u5931\u8d25\uff1a${error.message}`);
     }
 });
 
@@ -122,3 +162,9 @@ if ("IntersectionObserver" in window) {
 } else {
     reveals.forEach((item) => item.classList.add("is-visible"));
 }
+
+fetchUploadStatus()
+    .then(renderUploadStatus)
+    .catch(() => {
+        knowledgeStatus.textContent = "\u5f53\u524d\u6a21\u5f0f\uff1a\u4e2a\u4eba\u7b80\u5386\u95ee\u7b54";
+    });

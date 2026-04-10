@@ -497,6 +497,12 @@ body {
     border: 1px solid rgba(18, 58, 99, 0.08);
 }
 
+.assistant-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
 .upload-chip {
     position: relative;
     display: inline-flex;
@@ -521,6 +527,23 @@ body {
     inset: 0;
     opacity: 0;
     cursor: pointer;
+}
+
+.ghost-action {
+    padding: 10px 14px;
+    border-radius: 999px;
+    border: 1px solid rgba(18, 58, 99, 0.08);
+    background: transparent;
+    color: var(--muted);
+    cursor: pointer;
+    font: inherit;
+    transition: color 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+}
+
+.ghost-action:hover {
+    color: var(--text);
+    border-color: rgba(18, 58, 99, 0.16);
+    background: rgba(255, 255, 255, 0.45);
 }
 
 .suggestion-row {
@@ -652,6 +675,10 @@ body {
     .hero-actions,
     .chat-form {
         flex-direction: column;
+    }
+
+    .assistant-actions {
+        flex-wrap: wrap;
     }
 
     .hero-metrics {

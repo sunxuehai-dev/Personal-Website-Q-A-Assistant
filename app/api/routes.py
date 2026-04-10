@@ -9,6 +9,7 @@ from pydantic import BaseModel, Field
 from app.agent.service import ResumeQAService
 from app.core.config import Settings
 from app.ingestion.pipeline import ResumeIngestionPipeline
+from app.uploads.service import UploadKnowledgeBaseService
 
 router = APIRouter()
 
@@ -23,12 +24,24 @@ class ChatResponse(BaseModel):
     references: list[dict]
     route_target: str
     route_reason: str
+    question_type: str
+    question_type_reason: str
 
 
 class UploadResponse(BaseModel):
     file_name: str
     chunk_count: int
     collection_name: str
+
+
+class UploadStatusResponse(BaseModel):
+    has_uploaded_docs: bool
+    file_count: int
+    files: list[str]
+    active_file: str | None
+
+
+upload_kb_service = UploadKnowledgeBaseService()
 
 
 @router.get("/health")
@@ -43,7 +56,18 @@ def health_check() -> dict:
         "llm_type": Settings.LLM_TYPE,
         "chat_model": Settings.CHAT_MODEL_MAP.get(Settings.LLM_TYPE),
         "embedding_model": Settings.EMBEDDING_MODEL_MAP.get(Settings.LLM_TYPE),
+        "upload_status": upload_kb_service.get_status(),
     }
+
+
+@router.get("/upload_status", response_model=UploadStatusResponse)
+def upload_status() -> UploadStatusResponse:
+    return UploadStatusResponse(**upload_kb_service.get_status())
+
+
+@router.delete("/upload_status", response_model=UploadStatusResponse)
+def clear_uploaded_docs() -> UploadStatusResponse:
+    return UploadStatusResponse(**upload_kb_service.reset())
 
 
 @router.post("/upload_resume", response_model=UploadResponse)
@@ -57,6 +81,7 @@ async def upload_resume(file: UploadFile = File(...)) -> UploadResponse:
     if suffix != ".pdf":
         raise HTTPException(status_code=400, detail="Only PDF resumes are supported.")
 
+    upload_kb_service.reset()
     target_path = Settings.UPLOAD_DIR / Path(file.filename).name
     with target_path.open("wb") as buffer:
         shutil.copyfileobj(file.file, buffer)
@@ -90,4 +115,6 @@ def chat(payload: ChatRequest) -> ChatResponse:
         references=response.references,
         route_target=response.route_target,
         route_reason=response.route_reason,
+        question_type=response.question_type,
+        question_type_reason=response.question_type_reason,
     )

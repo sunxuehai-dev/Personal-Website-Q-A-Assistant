@@ -1,6 +1,6 @@
-﻿# Resume Assistant
+# Resume Assistant
 
-A standalone resume question-answering assistant built step by step.
+A personal website with an embedded resume-focused question answering assistant.
 
 ## Run
 
@@ -16,6 +16,28 @@ Open:
 http://127.0.0.1:8008/
 ```
 
+## Install
+
+Runtime dependencies:
+
+```bash
+.venv\Scripts\python -m pip install -r requirements.txt
+```
+
+Development dependencies:
+
+```bash
+.venv\Scripts\python -m pip install -r requirements-dev.txt
+```
+
+## Core Capabilities
+
+- Built-in personal resume knowledge base (`self_resume`)
+- Uploaded PDF knowledge base (`uploaded_docs`)
+- Query routing between personal resume, uploaded docs, or both
+- Single-page website with embedded "Ask My Resume" assistant
+- Manual self-resume ingestion for versioned resume updates
+
 ## Self Resume Ingestion
 
 Place your own resume PDF in `data/self_resume/`, then run:
@@ -30,8 +52,43 @@ You can also specify a source file explicitly:
 .venv\Scripts\python scripts\ingest_self_resume.py --pdf-path path\to\your_resume.pdf
 ```
 
+## Upload Knowledge Base Management
+
+The website automatically ingests uploaded PDFs into the temporary upload knowledge base.
+
+API helpers:
+
+- `GET /upload_status`
+- `DELETE /upload_status`
+
 ## Endpoints
 
+- `GET /`
 - `GET /health`
+- `GET /upload_status`
+- `DELETE /upload_status`
 - `POST /upload_resume`
 - `POST /chat`
+
+## Test
+
+```bash
+.venv\Scripts\python -m pytest
+```
+
+## Deploy
+
+This repository includes a `Dockerfile` for container deployment.
+
+Example:
+
+```bash
+docker build -t resume-assistant .
+docker run --rm -p 8008:8008 --env-file .env resume-assistant
+```
+
+Deployment notes:
+
+- Do not commit `.env`
+- Recreate `data/self_resume/` and run `scripts/ingest_self_resume.py` in the deployment environment
+- Set secrets through your hosting provider's environment variable settings
