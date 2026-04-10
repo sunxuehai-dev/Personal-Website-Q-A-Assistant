@@ -1,0 +1,16 @@
+.env
+.venv/
+.idea/
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+data/chroma/
+data/uploads/
+data/resumes/
+data/self_resume/
+
+*.log
+.DS_Store
+Thumbs.db

@@ -1,0 +1,13 @@
+fastapi
+uvicorn
+gradio
+langchain
+langchain-openai
+langchain-chroma
+langchain-community
+pypdf
+chromadb
+python-dotenv
+python-multipart
+requests
+jinja2
