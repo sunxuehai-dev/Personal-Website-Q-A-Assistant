@@ -146,6 +146,8 @@ def test_api_smoke_without_network(tmp_path, monkeypatch):
     STORE["upload"] = []
 
     fake_clients = FakeClients()
+    Settings.DASHSCOPE_API_KEY = "test-key"
+    Settings.MAX_UPLOAD_SIZE_MB = 1
 
     monkeypatch.setattr(api_routes, "ResumeIngestionPipeline", FakePipeline)
     monkeypatch.setattr(api_routes, "upload_kb_service", UploadKnowledgeBaseService())
@@ -161,6 +163,10 @@ def test_api_smoke_without_network(tmp_path, monkeypatch):
     health_response = client.get("/health")
     assert health_response.status_code == 200
     assert health_response.json()["status"] == "ok"
+
+    ready_response = client.get("/ready")
+    assert ready_response.status_code == 200
+    assert ready_response.json()["status"] == "ready"
 
     upload_status_before = client.get("/upload_status")
     assert upload_status_before.status_code == 200
@@ -192,3 +198,22 @@ def test_api_smoke_without_network(tmp_path, monkeypatch):
     clear_response = client.delete("/upload_status")
     assert clear_response.status_code == 200
     assert clear_response.json()["has_uploaded_docs"] is False
+
+
+def test_upload_rejects_oversized_pdf(tmp_path, monkeypatch):
+    configure_temp_settings(tmp_path)
+    Settings.MAX_UPLOAD_SIZE_MB = 1
+
+    monkeypatch.setattr("app.uploads.service.chromadb.PersistentClient", FakePersistentClient)
+    monkeypatch.setattr(api_routes, "upload_kb_service", UploadKnowledgeBaseService())
+
+    client = TestClient(create_app())
+    oversized = b"x" * (Settings.get_upload_size_limit_bytes() + 1)
+
+    response = client.post(
+        "/upload_resume",
+        files={"file": ("large.pdf", oversized, "application/pdf")},
+    )
+
+    assert response.status_code == 413
+    assert "limit" in response.json()["detail"].lower()

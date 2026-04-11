@@ -10,6 +10,12 @@ BASE_DIR = Path(__file__).resolve().parents[2]
 load_dotenv(BASE_DIR / ".env")
 
 
+def _split_env_list(value: str | None, default: list[str]) -> list[str]:
+    if not value:
+        return default
+    return [item.strip() for item in value.split(",") if item.strip()]
+
+
 class Settings:
     """Centralized application settings."""
 
@@ -25,6 +31,9 @@ class Settings:
     HOST = os.getenv("RESUME_ASSISTANT_HOST", "127.0.0.1")
     PORT = int(os.getenv("RESUME_ASSISTANT_PORT", "8008"))
     API_BASE_URL = os.getenv("RESUME_ASSISTANT_API_BASE_URL", f"http://{HOST}:{PORT}")
+    ENVIRONMENT = os.getenv("RESUME_ASSISTANT_ENV", "development").lower()
+    DEBUG = ENVIRONMENT != "production"
+    MAX_UPLOAD_SIZE_MB = int(os.getenv("MAX_UPLOAD_SIZE_MB", "15"))
 
     LLM_TYPE = os.getenv("LLM_TYPE", "qwen").lower()
 
@@ -49,6 +58,15 @@ class Settings:
         "openai": "text-embedding-3-small",
     }
 
+    CORS_ALLOWED_ORIGINS = _split_env_list(
+        os.getenv("CORS_ALLOWED_ORIGINS"),
+        ["http://127.0.0.1:8008", "http://localhost:8008"],
+    )
+    ALLOWED_HOSTS = _split_env_list(
+        os.getenv("ALLOWED_HOSTS"),
+        ["127.0.0.1", "localhost"],
+    )
+
     @classmethod
     def ensure_directories(cls) -> None:
         """Create project data directories if they do not exist."""
@@ -58,3 +76,11 @@ class Settings:
         cls.CHROMA_DIR.mkdir(parents=True, exist_ok=True)
         cls.SELF_RESUME_CHROMA_DIR.mkdir(parents=True, exist_ok=True)
         cls.UPLOAD_CHROMA_DIR.mkdir(parents=True, exist_ok=True)
+
+    @classmethod
+    def get_upload_size_limit_bytes(cls) -> int:
+        return cls.MAX_UPLOAD_SIZE_MB * 1024 * 1024
+
+    @classmethod
+    def is_production(cls) -> bool:
+        return cls.ENVIRONMENT == "production"

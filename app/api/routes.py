@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 from pathlib import Path
-import shutil
 
 from fastapi import APIRouter, File, HTTPException, UploadFile
 from pydantic import BaseModel, Field
@@ -49,6 +48,7 @@ def health_check() -> dict:
     Settings.ensure_directories()
     return {
         "status": "ok",
+        "environment": Settings.ENVIRONMENT,
         "self_resume_dir": str(Settings.SELF_RESUME_DIR),
         "self_resume_collection": Settings.SELF_RESUME_COLLECTION_NAME,
         "upload_dir": str(Settings.UPLOAD_DIR),
@@ -57,6 +57,22 @@ def health_check() -> dict:
         "chat_model": Settings.CHAT_MODEL_MAP.get(Settings.LLM_TYPE),
         "embedding_model": Settings.EMBEDDING_MODEL_MAP.get(Settings.LLM_TYPE),
         "upload_status": upload_kb_service.get_status(),
+    }
+
+
+@router.get("/ready")
+def readiness_check() -> dict:
+    Settings.ensure_directories()
+    resume_files = sorted(Settings.SELF_RESUME_DIR.glob("*.pdf"))
+    llm_ready = bool(Settings.DASHSCOPE_API_KEY) if Settings.LLM_TYPE == "qwen" else bool(Settings.OPENAI_API_KEY)
+    ready = bool(resume_files) and llm_ready
+    return {
+        "status": "ready" if ready else "not_ready",
+        "checks": {
+            "has_self_resume_pdf": bool(resume_files),
+            "llm_credentials_configured": llm_ready,
+            "environment": Settings.ENVIRONMENT,
+        },
     }
 
 
@@ -81,10 +97,17 @@ async def upload_resume(file: UploadFile = File(...)) -> UploadResponse:
     if suffix != ".pdf":
         raise HTTPException(status_code=400, detail="Only PDF resumes are supported.")
 
+    content = await file.read()
+    if len(content) > Settings.get_upload_size_limit_bytes():
+        raise HTTPException(
+            status_code=413,
+            detail=f"Uploaded PDF exceeds {Settings.MAX_UPLOAD_SIZE_MB} MB limit.",
+        )
+
     upload_kb_service.reset()
     target_path = Settings.UPLOAD_DIR / Path(file.filename).name
     with target_path.open("wb") as buffer:
-        shutil.copyfileobj(file.file, buffer)
+        buffer.write(content)
 
     result = ResumeIngestionPipeline(
         resume_dir=Settings.UPLOAD_DIR,

@@ -65,6 +65,7 @@ API helpers:
 
 - `GET /`
 - `GET /health`
+- `GET /ready`
 - `GET /upload_status`
 - `DELETE /upload_status`
 - `POST /upload_resume`
@@ -92,3 +93,6 @@ Deployment notes:
 - Do not commit `.env`
 - Recreate `data/self_resume/` and run `scripts/ingest_self_resume.py` in the deployment environment
 - Set secrets through your hosting provider's environment variable settings
+- For production, set `RESUME_ASSISTANT_ENV=production`
+- Restrict `CORS_ALLOWED_ORIGINS` and `ALLOWED_HOSTS` to your real domain
+- Use `/ready` as the deployment readiness probe
