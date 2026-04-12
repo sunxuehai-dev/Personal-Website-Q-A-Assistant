@@ -50,8 +50,8 @@ def get_llm_clients() -> LLMClients:
         api_key=api_key,
         model=Settings.CHAT_MODEL_MAP[provider],
         temperature=0.0,
-        timeout=60,
-        max_retries=2,
+        timeout=Settings.LLM_TIMEOUT_SECONDS,
+        max_retries=Settings.LLM_MAX_RETRIES,
     )
 
     embedding_model = OpenAIEmbeddings(

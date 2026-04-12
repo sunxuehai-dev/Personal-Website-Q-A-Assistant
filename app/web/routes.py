@@ -71,6 +71,5 @@ def home(request: Request) -> HTMLResponse:
             "Docker",
             "MySQL",
         ],
-        "api_base_url": Settings.API_BASE_URL,
     }
     return templates.TemplateResponse(request, "index.html", context)

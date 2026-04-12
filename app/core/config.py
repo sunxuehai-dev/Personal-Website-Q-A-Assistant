@@ -34,6 +34,8 @@ class Settings:
     ENVIRONMENT = os.getenv("RESUME_ASSISTANT_ENV", "development").lower()
     DEBUG = ENVIRONMENT != "production"
     MAX_UPLOAD_SIZE_MB = int(os.getenv("MAX_UPLOAD_SIZE_MB", "15"))
+    LLM_TIMEOUT_SECONDS = int(os.getenv("LLM_TIMEOUT_SECONDS", "180"))
+    LLM_MAX_RETRIES = int(os.getenv("LLM_MAX_RETRIES", "3"))
 
     LLM_TYPE = os.getenv("LLM_TYPE", "qwen").lower()
 

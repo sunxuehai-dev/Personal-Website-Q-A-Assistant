@@ -96,3 +96,4 @@ Deployment notes:
 - For production, set `RESUME_ASSISTANT_ENV=production`
 - Restrict `CORS_ALLOWED_ORIGINS` and `ALLOWED_HOSTS` to your real domain
 - Use `/ready` as the deployment readiness probe
+- If model calls are slow, increase `LLM_TIMEOUT_SECONDS`

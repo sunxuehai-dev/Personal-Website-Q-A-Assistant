@@ -13,6 +13,17 @@ from app.uploads.service import UploadKnowledgeBaseService
 router = APIRouter()
 
 
+def _normalize_chat_error(exc: Exception) -> str:
+    message = str(exc).strip() or exc.__class__.__name__
+    lowered = message.lower()
+    if "timed out" in lowered or "timeout" in lowered:
+        return (
+            "Model request timed out. "
+            f"Try a shorter question, wait a moment, or increase LLM_TIMEOUT_SECONDS (current: {Settings.LLM_TIMEOUT_SECONDS}s)."
+        )
+    return f"Chat failed: {message}"
+
+
 class ChatRequest(BaseModel):
     question: str = Field(..., min_length=1, description="Question about the resume")
     use_uploaded_docs: bool = False
@@ -131,7 +142,7 @@ def chat(payload: ChatRequest) -> ChatResponse:
     try:
         response = ResumeQAService().ask(question, use_uploaded_docs=payload.use_uploaded_docs)
     except Exception as exc:
-        raise HTTPException(status_code=500, detail=f"Chat failed: {exc}") from exc
+        raise HTTPException(status_code=500, detail=_normalize_chat_error(exc)) from exc
 
     return ChatResponse(
         answer=response.answer,

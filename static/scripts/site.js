@@ -1,4 +1,4 @@
-const apiBase = document.body.dataset.apiBase || "";
+const apiBase = "";
 const chatLog = document.getElementById("chat-log");
 const chatForm = document.getElementById("chat-form");
 const chatInput = document.getElementById("chat-input");
