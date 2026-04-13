@@ -41,6 +41,15 @@ echo "Container status:"
 docker compose ps
 
 echo "Health check:"
-curl --fail --silent http://127.0.0.1:8008/health
-echo
-echo "Deployment completed."
+for attempt in {1..20}; do
+  if curl --fail --silent http://127.0.0.1:8008/health; then
+    echo
+    echo "Health check passed on attempt $attempt."
+    echo "Deployment completed."
+    exit 0
+  fi
+  sleep 1
+done
+
+echo "Health check failed after multiple attempts." >&2
+exit 1
