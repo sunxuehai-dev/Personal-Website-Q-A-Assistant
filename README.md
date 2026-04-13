@@ -79,7 +79,7 @@ API helpers:
 
 ## Deploy
 
-This repository includes a `Dockerfile` for container deployment.
+This repository includes a `Dockerfile` and `compose.yaml` for container deployment.
 
 Example:
 
@@ -87,6 +87,32 @@ Example:
 docker build -t resume-assistant .
 docker run --rm -p 8008:8008 --env-file .env resume-assistant
 ```
+
+Recommended server workflow:
+
+```bash
+docker compose up -d --build
+```
+
+For repeatable server deployment, use:
+
+```bash
+./scripts/deploy_server.sh
+```
+
+If you have already pulled the latest code and only want to rebuild/restart:
+
+```bash
+./scripts/deploy_server.sh --skip-pull
+```
+
+`compose.yaml` versions the current deployment shape:
+
+- container name: `resume-assistant`
+- port mapping: `8008:8008`
+- env file: `.env`
+- data mount: `./data:/app/data`
+- restart policy: `always`
 
 ### Build With ACR / Domestic Mirrors
 
@@ -111,9 +137,9 @@ docker build ^
 Recommended ACR-oriented deployment strategy:
 
 1. Sync or push the Python base image into your own ACR namespace.
-2. On the server, `git pull` the latest code.
-3. Build with `BASE_IMAGE` pointing to the ACR-hosted base image.
-4. Run the new container locally on the server, or tag and push the built app image into ACR for later pulls.
+2. Set `BASE_IMAGE`, `PIP_INDEX_URL`, and `PIP_TRUSTED_HOST` in the server `.env`.
+3. On the server, `git pull` the latest code.
+4. Rebuild and restart with `docker compose up -d --build`.
 
 This keeps both the base image path and the application image path under your own registry control.
 

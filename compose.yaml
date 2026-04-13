@@ -1,0 +1,17 @@
+services:
+  resume-assistant:
+    container_name: resume-assistant
+    build:
+      context: .
+      args:
+        BASE_IMAGE: ${BASE_IMAGE:-python:3.11-slim}
+        PIP_INDEX_URL: ${PIP_INDEX_URL:-https://pypi.org/simple}
+        PIP_TRUSTED_HOST: ${PIP_TRUSTED_HOST:-}
+    image: resume-assistant:latest
+    env_file:
+      - .env
+    ports:
+      - "8008:8008"
+    volumes:
+      - ./data:/app/data
+    restart: always
