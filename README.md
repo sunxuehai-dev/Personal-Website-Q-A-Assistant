@@ -88,6 +88,35 @@ docker build -t resume-assistant .
 docker run --rm -p 8008:8008 --env-file .env resume-assistant
 ```
 
+### Build With ACR / Domestic Mirrors
+
+The `Dockerfile` supports a configurable base image and pip index so the server can build without talking directly to Docker Hub or the default PyPI index.
+
+Use the default build locally:
+
+```bash
+docker build -t resume-assistant .
+```
+
+Use a custom registry-hosted base image and a domestic pip mirror on the server:
+
+```bash
+docker build ^
+  --build-arg BASE_IMAGE=<your-acr-registry>/python:3.11-slim ^
+  --build-arg PIP_INDEX_URL=https://mirrors.aliyun.com/pypi/simple/ ^
+  --build-arg PIP_TRUSTED_HOST=mirrors.aliyun.com ^
+  -t resume-assistant .
+```
+
+Recommended ACR-oriented deployment strategy:
+
+1. Sync or push the Python base image into your own ACR namespace.
+2. On the server, `git pull` the latest code.
+3. Build with `BASE_IMAGE` pointing to the ACR-hosted base image.
+4. Run the new container locally on the server, or tag and push the built app image into ACR for later pulls.
+
+This keeps both the base image path and the application image path under your own registry control.
+
 Deployment notes:
 
 - Do not commit `.env`
