@@ -7,7 +7,6 @@ from fastapi.testclient import TestClient
 from langchain_core.documents import Document
 
 from app.agent import service as agent_service
-from app.agent.router import QueryRouter
 from app.api import routes as api_routes
 from app.core.config import Settings
 from app.main import create_app
@@ -56,6 +55,25 @@ class FakeWebResponse:
                 ]
             )
         ]
+
+
+class FakeCompletionMessage:
+    def __init__(self, content: str):
+        self.content = content
+        self.annotations = [
+            FakeAnnotation("OpenAI", "https://openai.com/index/new-tools-for-building-agents/")
+        ]
+        self.tool_calls = []
+
+
+class FakeChoice:
+    def __init__(self, content: str):
+        self.message = FakeCompletionMessage(content)
+
+
+class FakeChatCompletionResponse:
+    def __init__(self, content: str):
+        self.choices = [FakeChoice(content)]
 
 
 class FakeChatModel:
@@ -111,9 +129,14 @@ class FakeEmbeddings:
 class FakeResponseClient:
     def __init__(self):
         self.responses = self
+        self.chat = self
+        self.completions = self
 
-    def create(self, model, tools, input):
-        del model, tools, input
+    def create(self, *args, **kwargs):
+        del args
+        extra_body = kwargs.get("extra_body")
+        if extra_body and extra_body.get("enable_search") is True:
+            return FakeChatCompletionResponse("联网搜索显示，当前主流 Agent 通常采用路由加工具调用的轻量编排。")
         return FakeWebResponse("联网搜索显示，当前主流 Agent 通常采用路由加工具调用的轻量编排。")
 
 
