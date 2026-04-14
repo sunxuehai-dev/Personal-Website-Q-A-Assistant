@@ -18,10 +18,6 @@ function appendMessage(role, content) {
     return wrapper;
 }
 
-function sourceBadgeLabel(sourceBadge) {
-    return sourceBadge || "已完成回答";
-}
-
 function sleep(ms) {
     return new Promise((resolve) => setTimeout(resolve, ms));
 }
@@ -185,12 +181,8 @@ async function streamQuestion(question, targetNode) {
     }
 
     await typewriter.waitForIdle();
-    if (finalMeta?.source_badge) {
-        typewriter.setFinalText(`${typewriter.getText()}\n\n${sourceBadgeLabel(finalMeta.source_badge)}`);
-        knowledgeStatus.textContent = sourceBadgeLabel(finalMeta.source_badge);
-    } else {
-        knowledgeStatus.textContent = "已完成回答";
-    }
+    typewriter.setFinalText(typewriter.getText());
+    knowledgeStatus.textContent = "已完成回答";
 }
 
 uploadInput?.addEventListener("change", async (event) => {
@@ -232,8 +224,8 @@ chatForm?.addEventListener("submit", async (event) => {
     } catch (error) {
         try {
             const payload = await askQuestion(question);
-            assistantNode.textContent = `${payload.answer}\n\n${sourceBadgeLabel(payload.source_badge)}`;
-            knowledgeStatus.textContent = sourceBadgeLabel(payload.source_badge);
+            assistantNode.textContent = payload.answer;
+            knowledgeStatus.textContent = "已完成回答";
         } catch (fallbackError) {
             knowledgeStatus.textContent = "请求失败";
             assistantNode.textContent = `请求失败：${fallbackError.message}`;
