@@ -45,16 +45,32 @@ class ResumeQAService:
         )
 
     def ask_stream(self, question: str, use_uploaded_docs: bool = False) -> Iterator[str]:
-        result = self._run_pipeline(question, use_uploaded_docs=use_uploaded_docs)
-        yield self._encode_stream_event("token", {"content": result["answer"]})
+        has_uploaded_docs = self._has_uploaded_docs(use_uploaded_docs)
+        relevance = self.relevance_judge.judge(question, has_uploaded_docs=has_uploaded_docs)
+        retrieval = self._retrieve(
+            question,
+            relevance=relevance.relevance,
+            use_uploaded_docs=use_uploaded_docs,
+            has_uploaded_docs=has_uploaded_docs,
+            retry=False,
+        )
+        for event in self.response_synthesizer.stream(
+            question=question,
+            relevance=relevance.relevance,
+            evidences=retrieval.evidences,
+            retry=False,
+        ):
+            yield event
         yield self._encode_stream_event(
             "meta",
             {
-                "references": result["references"],
-                "source_badge": result["source_badge"],
-                "used_local_context": result["used_local_context"],
-                "used_web_search": result["used_web_search"],
-                "retried": result["retried"],
+                "references": self._build_references(retrieval.evidences),
+                **self.response_synthesizer.build_stream_meta(
+                    question=question,
+                    relevance=relevance.relevance,
+                    evidences=retrieval.evidences,
+                ),
+                "retried": False,
             },
         )
         yield self._encode_stream_event("done", {})

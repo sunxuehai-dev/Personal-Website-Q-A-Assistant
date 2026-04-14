@@ -30,9 +30,19 @@ class FakeChoice:
         self.message = type("Message", (), {"content": content})()
 
 
+class FakeDeltaChoice:
+    def __init__(self, content: str):
+        self.delta = type("Delta", (), {"content": content})()
+
+
 class FakeChatCompletionResponse:
     def __init__(self, content: str):
         self.choices = [FakeChoice(content)]
+
+
+class FakeChatCompletionChunk:
+    def __init__(self, content: str):
+        self.choices = [FakeDeltaChoice(content)]
 
 
 class FakeChatModel:
@@ -85,6 +95,14 @@ class FakeResponseClient:
         del args
         messages = kwargs.get("messages", [])
         payload = messages[1]["content"] if len(messages) > 1 else ""
+        if kwargs.get("stream") is True:
+            if "现在主流的 agent 框架有哪些" in payload:
+                chunks = ["当前主流 Agent 框架包括", " LangGraph、AutoGen、CrewAI 等。"]
+            elif "无" in payload:
+                chunks = ["我目前没有可靠的本地资料证据，", "但可以先给你一个通用回答。"]
+            else:
+                chunks = ["根据本地资料，", "孙雪海有 AI 应用开发、RAG 和个人网站相关项目经验。"]
+            return iter(FakeChatCompletionChunk(chunk) for chunk in chunks)
         if "现在主流的 agent 框架有哪些" in payload:
             return FakeChatCompletionResponse("当前主流 Agent 框架包括 LangGraph、AutoGen、CrewAI 等。")
         if "无" in payload:

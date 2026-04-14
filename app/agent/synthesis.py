@@ -34,14 +34,12 @@ class ResponseSynthesizer:
     ) -> AnswerDraft:
         if Settings.LLM_TYPE == "qwen":
             answer = self._synthesize_with_qwen(question, relevance, evidences, retry)
+            used_web_search = self._infer_used_web_search(question, relevance, evidences, answer)
             return AnswerDraft(
                 answer=answer,
                 used_local_context=bool(evidences),
-                used_web_search=self._infer_used_web_search(question, answer, relevance, evidences),
-                source_badge=self._build_source_badge(
-                    bool(evidences),
-                    self._infer_used_web_search(question, answer, relevance, evidences),
-                ),
+                used_web_search=used_web_search,
+                source_badge=self._build_source_badge(bool(evidences), used_web_search),
             )
 
         response = self.clients.chat_model.invoke(
@@ -63,13 +61,31 @@ class ResponseSynthesizer:
         evidences: list[RetrievedEvidence],
         retry: bool,
     ) -> Iterator[str]:
-        draft = self.synthesize(
-            question=question,
-            relevance=relevance,
-            evidences=evidences,
-            retry=retry,
-        )
-        yield self._encode_event("token", {"content": draft.answer})
+        if Settings.LLM_TYPE == "qwen":
+            yield from self._stream_with_qwen(question, relevance, evidences, retry)
+            return
+
+        for chunk in self.clients.chat_model.stream(
+            self._build_messages(question=question, relevance=relevance, evidences=evidences, retry=retry)
+        ):
+            content = str(chunk.content or "")
+            if not content:
+                continue
+            yield self._encode_event("token", {"content": content})
+
+    def build_stream_meta(
+        self,
+        *,
+        question: str,
+        relevance: str,
+        evidences: list[RetrievedEvidence],
+    ) -> dict:
+        used_web_search = self._infer_used_web_search(question, relevance, evidences, "")
+        return {
+            "source_badge": self._build_source_badge(bool(evidences), used_web_search),
+            "used_local_context": bool(evidences),
+            "used_web_search": used_web_search,
+        }
 
     def _synthesize_with_qwen(
         self,
@@ -89,6 +105,42 @@ class ResponseSynthesizer:
             extra_body={"enable_search": True},
         )
         return str(completion.choices[0].message.content or "").strip() or "当前没有足够信息。"
+
+    def _stream_with_qwen(
+        self,
+        question: str,
+        relevance: str,
+        evidences: list[RetrievedEvidence],
+        retry: bool,
+    ) -> Iterator[str]:
+        stream = self.clients.response_client.chat.completions.create(
+            model=Settings.CHAT_MODEL_MAP[Settings.LLM_TYPE],
+            messages=self._build_messages(
+                question=question,
+                relevance=relevance,
+                evidences=evidences,
+                retry=retry,
+            ),
+            extra_body={"enable_search": True},
+            stream=True,
+        )
+
+        emitted = False
+        for chunk in stream:
+            choices = getattr(chunk, "choices", None) or []
+            if not choices:
+                continue
+            delta = getattr(choices[0], "delta", None)
+            content = getattr(delta, "content", None) if delta is not None else None
+            if content is None and isinstance(delta, dict):
+                content = delta.get("content")
+            if not content:
+                continue
+            emitted = True
+            yield self._encode_event("token", {"content": str(content)})
+
+        if not emitted:
+            yield self._encode_event("token", {"content": "当前没有足够信息。"})
 
     def _build_messages(
         self,
@@ -115,9 +167,9 @@ class ResponseSynthesizer:
     def _infer_used_web_search(
         self,
         question: str,
-        answer: str,
         relevance: str,
         evidences: list[RetrievedEvidence],
+        answer: str,
     ) -> bool:
         normalized_question = question.lower()
         web_hints = ("最新", "最近", "今天", "当前", "主流", "官网", "趋势", "现状", "news", "latest")
