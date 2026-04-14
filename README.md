@@ -1,67 +1,69 @@
 # Resume Assistant
 
-A personal website with an embedded resume-focused question answering assistant.
+一个集成了个人主页与简历问答助手的项目。
 
-## Run
+## 启动
 
-Website + API:
+启动网站和 API：
 
 ```bash
 .venv\Scripts\python -m app.main
 ```
 
-Open:
+访问地址：
 
 ```text
 http://127.0.0.1:8008/
 ```
 
-## Install
+## 安装
 
-Runtime dependencies:
+安装运行依赖：
 
 ```bash
 .venv\Scripts\python -m pip install -r requirements.txt
 ```
 
-Development dependencies:
+安装开发依赖：
 
 ```bash
 .venv\Scripts\python -m pip install -r requirements-dev.txt
 ```
 
-## Core Capabilities
+## 核心能力
 
-- Built-in personal resume knowledge base (`self_resume`)
-- Uploaded PDF knowledge base (`uploaded_docs`)
-- Query routing between personal resume, uploaded docs, or both
-- Single-page website with embedded "Ask My Resume" assistant
-- Manual self-resume ingestion for versioned resume updates
+- 内置个人简历知识库 `self_resume`
+- 上传 PDF 临时知识库 `uploaded_docs`
+- 支持在个人简历、上传文档或双知识库之间进行问答路由
+- 单页个人网站，内嵌 “Ask My Resume” 助手
+- 支持手动重建个人简历知识库
 
-## Self Resume Ingestion
+## 个人简历灌库
 
-Place your own resume PDF in `data/self_resume/`, then run:
-
-```bash
-.venv\Scripts\python scripts\ingest_self_resume.py
-```
-
-You can also specify a source file explicitly:
+请显式指定源文件路径执行：
 
 ```bash
 .venv\Scripts\python scripts\ingest_self_resume.py --pdf-path path\to\your_resume.pdf
 ```
 
-## Upload Knowledge Base Management
+`ingest_self_resume.py` 的行为是全量重建：
 
-The website automatically ingests uploaded PDFs into the temporary upload knowledge base.
+- 会清空 `data/self_resume/` 中已有的旧 PDF
+- 会重建 `data/chroma/self_resume/`
+- 指定的新简历会成为唯一生效的 `self_resume` 知识库
 
-API helpers:
+不再支持“先把 PDF 放进 `data/self_resume/` 再直接执行脚本”的旧用法。
+
+## 上传知识库管理
+
+网站会自动把上传的 PDF 灌入临时上传知识库。
+
+相关接口：
 
 - `GET /upload_status`
 - `DELETE /upload_status`
 
-## Endpoints
+## 接口列表
 
 - `GET /`
 - `GET /health`
@@ -71,60 +73,60 @@ API helpers:
 - `POST /upload_resume`
 - `POST /chat`
 
-## Test
+## 测试
 
 ```bash
 .venv\Scripts\python -m pytest
 ```
 
-## Deploy
+## 部署
 
-This repository includes a `Dockerfile` and `compose.yaml` for container deployment.
+仓库内置了 `Dockerfile` 和 `compose.yaml`，可直接用于容器化部署。
 
-Example:
+示例：
 
 ```bash
 docker build -t resume-assistant .
 docker run --rm -p 8008:8008 --env-file .env resume-assistant
 ```
 
-Recommended server workflow:
+推荐的服务器启动方式：
 
 ```bash
 docker compose up -d --build
 ```
 
-For repeatable server deployment, use:
+需要可重复执行的服务器部署流程时，使用：
 
 ```bash
-./scripts/deploy_server.sh
+bash scripts/deploy_server.sh
 ```
 
-If you have already pulled the latest code and only want to rebuild/restart:
+如果你已经提前 `git pull`，只想重建并重启服务：
 
 ```bash
-./scripts/deploy_server.sh --skip-pull
+bash scripts/deploy_server.sh --skip-pull
 ```
 
-`compose.yaml` versions the current deployment shape:
+当前 `compose.yaml` 约定的部署形态：
 
-- container name: `resume-assistant`
-- port mapping: `8008:8008`
-- env file: `.env`
-- data mount: `./data:/app/data`
-- restart policy: `always`
+- 容器名：`resume-assistant`
+- 端口映射：`8008:8008`
+- 环境变量文件：`.env`
+- 数据挂载：`./data:/app/data`
+- 重启策略：`always`
 
-### Build With ACR / Domestic Mirrors
+### 使用 ACR / 国内镜像源构建
 
-The `Dockerfile` supports a configurable base image and pip index so the server can build without talking directly to Docker Hub or the default PyPI index.
+`Dockerfile` 支持自定义基础镜像和 pip 源，这样服务器构建时不必直接依赖 Docker Hub 或默认 PyPI。
 
-Use the default build locally:
+本地默认构建：
 
 ```bash
 docker build -t resume-assistant .
 ```
 
-Use a custom registry-hosted base image and a domestic pip mirror on the server:
+服务器上使用自定义镜像仓库基础镜像和国内 pip 源：
 
 ```bash
 docker build ^
@@ -134,21 +136,21 @@ docker build ^
   -t resume-assistant .
 ```
 
-Recommended ACR-oriented deployment strategy:
+推荐的 ACR 部署思路：
 
-1. Sync or push the Python base image into your own ACR namespace.
-2. Set `BASE_IMAGE`, `PIP_INDEX_URL`, and `PIP_TRUSTED_HOST` in the server `.env`.
-3. On the server, `git pull` the latest code.
-4. Rebuild and restart with `docker compose up -d --build`.
+1. 先把 Python 基础镜像同步或推送到你自己的 ACR 命名空间。
+2. 在服务器 `.env` 中配置 `BASE_IMAGE`、`PIP_INDEX_URL`、`PIP_TRUSTED_HOST`。
+3. 在服务器执行 `git pull` 拉取最新代码。
+4. 通过 `docker compose up -d --build` 重建并重启服务。
 
-This keeps both the base image path and the application image path under your own registry control.
+这样可以把基础镜像来源和应用镜像构建链路都收敛到你自己的环境中。
 
-Deployment notes:
+## 部署说明
 
-- Do not commit `.env`
-- Recreate `data/self_resume/` and run `scripts/ingest_self_resume.py` in the deployment environment
-- Set secrets through your hosting provider's environment variable settings
-- For production, set `RESUME_ASSISTANT_ENV=production`
-- Restrict `CORS_ALLOWED_ORIGINS` and `ALLOWED_HOSTS` to your real domain
-- Use `/ready` as the deployment readiness probe
-- If model calls are slow, increase `LLM_TIMEOUT_SECONDS`
+- 不要提交 `.env`
+- 在部署环境中准备 `data/self_resume/`，然后执行 `scripts/ingest_self_resume.py`
+- 通过托管平台或服务器环境变量管理密钥
+- 生产环境请设置 `RESUME_ASSISTANT_ENV=production`
+- 将 `CORS_ALLOWED_ORIGINS` 和 `ALLOWED_HOSTS` 收紧到真实域名
+- 使用 `/ready` 作为部署就绪探针
+- 如果模型调用较慢，可调大 `LLM_TIMEOUT_SECONDS`

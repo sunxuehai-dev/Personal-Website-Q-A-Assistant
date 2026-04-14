@@ -10,6 +10,7 @@ from app.agent import questioning, routing, service as agent_service
 from app.core.config import Settings
 from app.main import create_app
 from app.uploads.service import UploadKnowledgeBaseService
+from scripts import ingest_self_resume
 
 
 STORE: dict[str, list[Document]] = {
@@ -217,3 +218,34 @@ def test_upload_rejects_oversized_pdf(tmp_path, monkeypatch):
 
     assert response.status_code == 413
     assert "limit" in response.json()["detail"].lower()
+
+
+def test_ingest_self_resume_resets_pdf_and_chroma_directories(tmp_path):
+    configure_temp_settings(tmp_path)
+
+    old_pdf = Settings.SELF_RESUME_DIR / "old_resume.pdf"
+    old_pdf.write_bytes(b"%PDF-1.4 old")
+
+    stale_dir = Settings.SELF_RESUME_CHROMA_DIR / "stale-vector-dir"
+    stale_dir.mkdir(parents=True, exist_ok=True)
+    stale_file = stale_dir / "data_level0.bin"
+    stale_file.write_bytes(b"stale")
+
+    source_pdf = tmp_path / "new_resume.pdf"
+    source_pdf.write_bytes(b"%PDF-1.4 new")
+
+    target_pdf = ingest_self_resume.resolve_target_pdf(str(source_pdf))
+
+    assert target_pdf == Settings.SELF_RESUME_DIR / "new_resume.pdf"
+    assert target_pdf.exists()
+    assert not old_pdf.exists()
+    assert not stale_dir.exists()
+
+
+def test_ingest_self_resume_requires_pdf_path_argument():
+    try:
+        ingest_self_resume.parse_args([])
+    except SystemExit as exc:
+        assert exc.code == 2
+    else:
+        raise AssertionError("parse_args should require --pdf-path")

@@ -14,38 +14,43 @@ from app.core.config import Settings
 from app.ingestion.pipeline import ResumeIngestionPipeline
 
 
-def parse_args() -> argparse.Namespace:
+def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="Ingest the self resume PDF into the persistent self_resume knowledge base."
+        description="Ingest a source PDF into the persistent self_resume knowledge base."
     )
     parser.add_argument(
         "--pdf-path",
         type=str,
-        default=None,
-        help="Optional source PDF path. If omitted, the script uses the first PDF found in data/self_resume.",
+        required=True,
+        help="Absolute or relative path to the source resume PDF.",
     )
-    return parser.parse_args()
+    return parser.parse_args(argv)
 
 
-def resolve_target_pdf(pdf_path: str | None) -> Path:
+def reset_self_resume_storage() -> None:
     Settings.ensure_directories()
 
-    if pdf_path:
-        source_path = Path(pdf_path).expanduser().resolve()
-        if not source_path.exists():
-            raise FileNotFoundError(f"Source resume file not found: {source_path}")
+    for file in Settings.SELF_RESUME_DIR.glob("*.pdf"):
+        file.unlink(missing_ok=True)
 
-        target_path = Settings.SELF_RESUME_DIR / source_path.name
-        if source_path != target_path:
-            shutil.copy2(source_path, target_path)
-        return target_path
+    if Settings.SELF_RESUME_CHROMA_DIR.exists():
+        shutil.rmtree(Settings.SELF_RESUME_CHROMA_DIR)
+    Settings.SELF_RESUME_CHROMA_DIR.mkdir(parents=True, exist_ok=True)
 
-    candidates = sorted(Settings.SELF_RESUME_DIR.glob("*.pdf"))
-    if not candidates:
-        raise FileNotFoundError(
-            f"No PDF found in self resume directory: {Settings.SELF_RESUME_DIR}"
-        )
-    return candidates[0]
+
+def resolve_target_pdf(pdf_path: str) -> Path:
+    source_path = Path(pdf_path).expanduser().resolve()
+    if not source_path.exists():
+        raise FileNotFoundError(f"Source resume file not found: {source_path}")
+    if source_path.suffix.lower() != ".pdf":
+        raise ValueError(f"Only PDF files are supported: {source_path}")
+
+    reset_self_resume_storage()
+
+    target_path = Settings.SELF_RESUME_DIR / source_path.name
+    if source_path != target_path:
+        shutil.copy2(source_path, target_path)
+    return target_path
 
 
 def main() -> None:
@@ -61,6 +66,7 @@ def main() -> None:
     result = pipeline.ingest(target_pdf.name)
 
     print("Self resume ingestion completed successfully.")
+    print("Rebuilt self_resume storage from scratch.")
     print(f"File: {result['file_name']}")
     print(f"Chunks: {result['chunk_count']}")
     print(f"Collection: {result['collection_name']}")

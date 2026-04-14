@@ -12,7 +12,7 @@ for arg in "$@"; do
       ;;
     *)
       echo "Unknown argument: $arg" >&2
-      echo "Usage: ./scripts/deploy_server.sh [--skip-pull]" >&2
+      echo "Usage: bash scripts/deploy_server.sh [--skip-pull]" >&2
       exit 1
       ;;
   esac
