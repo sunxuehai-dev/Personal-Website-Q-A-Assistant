@@ -6,7 +6,7 @@ from fastapi.testclient import TestClient
 from langchain_core.documents import Document
 
 from app.api import routes as api_routes
-from app.agent import questioning, routing, service as agent_service
+from app.agent import service as agent_service
 from app.core.config import Settings
 from app.main import create_app
 from app.uploads.service import UploadKnowledgeBaseService
@@ -26,16 +26,6 @@ class FakeMessage:
 
 class FakeChatModel:
     def invoke(self, messages):
-        user_content = messages[-1]["content"]
-        if "Return one label only." in user_content:
-            if "Route target:" in user_content:
-                if "工作经历" in user_content:
-                    return FakeMessage("work_experience")
-                return FakeMessage("general")
-            if "uploaded PDF document" in user_content:
-                if "上传" in user_content or "pdf" in user_content.lower():
-                    return FakeMessage("uploaded_docs")
-                return FakeMessage("self_resume")
         return FakeMessage("这是 smoke test 的 mock 回答。")
 
 
@@ -61,11 +51,41 @@ class FakeResumeRetriever:
         limit = top_k or self.top_k
         return STORE["self"][:limit]
 
+    def similarity_search_with_scores(self, query: str, top_k: int | None = None):
+        limit = top_k or self.top_k
+        return [(doc, 0.1) for doc in STORE["self"][:limit]]
+
 
 class FakeUploadedRetriever(FakeResumeRetriever):
     def similarity_search(self, query: str, top_k: int | None = None):
         limit = top_k or self.top_k
         return STORE["upload"][:limit]
+
+    def similarity_search_with_scores(self, query: str, top_k: int | None = None):
+        limit = top_k or self.top_k
+        return [(doc, 0.1) for doc in STORE["upload"][:limit]]
+
+
+class FakeKeywordRetriever:
+    def __init__(self, *args, doc_type: str = "self_resume", **kwargs):
+        self.doc_type = doc_type
+
+    def search(self, question: str, query_terms: list[str], top_k: int = 4):
+        key = "upload" if self.doc_type == "uploaded_docs" else "self"
+        docs = STORE[key][:top_k]
+        results = []
+        for doc in docs:
+            results.append(
+                agent_service.RetrievedEvidence(
+                    content=doc.page_content,
+                    source_file=doc.metadata.get("source_file"),
+                    page=doc.metadata.get("page_label", doc.metadata.get("page")),
+                    doc_type=doc.metadata.get("doc_type"),
+                    retrieval_method="keyword",
+                    score=5.0,
+                )
+            )
+        return results
 
 
 class FakePipeline:
@@ -154,9 +174,8 @@ def test_api_smoke_without_network(tmp_path, monkeypatch):
     monkeypatch.setattr(api_routes, "upload_kb_service", UploadKnowledgeBaseService())
     monkeypatch.setattr(agent_service, "ResumeRetriever", FakeResumeRetriever)
     monkeypatch.setattr(agent_service, "UploadedDocumentRetriever", FakeUploadedRetriever)
-    monkeypatch.setattr(agent_service, "get_llm_clients", lambda: fake_clients)
-    monkeypatch.setattr(routing, "get_llm_clients", lambda: fake_clients)
-    monkeypatch.setattr(questioning, "get_llm_clients", lambda: fake_clients)
+    monkeypatch.setattr(agent_service, "KeywordRetriever", FakeKeywordRetriever)
+    monkeypatch.setattr("app.agent.synthesis.get_llm_clients", lambda: fake_clients)
     monkeypatch.setattr("app.uploads.service.chromadb.PersistentClient", FakePersistentClient)
 
     client = TestClient(create_app())
@@ -186,7 +205,7 @@ def test_api_smoke_without_network(tmp_path, monkeypatch):
     )
     assert self_chat_response.status_code == 200
     assert self_chat_response.json()["route_target"] == "self_resume"
-    assert self_chat_response.json()["question_type"] == "work_experience"
+    assert self_chat_response.json()["question_type"] == "summary"
 
     upload_chat_response = client.post(
         "/chat",
