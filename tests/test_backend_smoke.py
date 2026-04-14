@@ -268,6 +268,24 @@ def test_api_smoke_without_network(tmp_path, monkeypatch):
     assert web_response.json()["used_web_search"] is True
     assert web_response.json()["source_badge"] == "结合联网信息"
 
+    upload_response = client.post(
+        "/upload_resume",
+        files={"file": ("uploaded.pdf", b"%PDF-1.4 uploaded", "application/pdf")},
+    )
+    assert upload_response.status_code == 200
+
+    upload_chat_response = client.post(
+        "/chat",
+        json={"question": "总结一下这份简历的内容", "use_uploaded_docs": True},
+    )
+    assert upload_chat_response.status_code == 200
+    assert upload_chat_response.json()["used_local_context"] is True
+    assert any(
+        item.get("source_file") == "uploaded.pdf"
+        for item in upload_chat_response.json()["references"]
+        if item.get("source_kind") == "local"
+    )
+
 
 def test_chat_stream_returns_sse_events(tmp_path, monkeypatch):
     configure_temp_settings(tmp_path)

@@ -73,6 +73,8 @@ class QueryAnalyzer:
         "你自己",
         "你的经历",
         "你的项目",
+        "你的简历",
+        "你的个人网站",
         "your resume",
         "sun xuehai",
     ]
@@ -85,6 +87,7 @@ class QueryAnalyzer:
         "材料",
         "这个pdf",
         "这份pdf",
+        "这份简历",
         "uploaded",
         "upload",
         "attachment",
@@ -163,11 +166,11 @@ class QueryAnalyzer:
 
         if compare_hit or (self_hit and upload_hit):
             return self.BOTH_SCOPE, "analysis_compare_scope"
-        if upload_hit and not self_hit:
+        if self_hit and not upload_hit:
+            return self.SELF_SCOPE, "analysis_explicit_self_scope"
+        if upload_hit:
             return self.UPLOAD_SCOPE, "analysis_upload_scope"
-        if self_hit:
-            return self.SELF_SCOPE, "analysis_self_scope"
-        return self.SELF_SCOPE, "analysis_default_self"
+        return self.UPLOAD_SCOPE, "analysis_default_upload_scope"
 
     def _determine_task_type(self, question: str, normalized_question: str) -> tuple[str, str]:
         if any(hint in question.lower() or hint in normalized_question for hint in self.COMPARE_HINTS):
