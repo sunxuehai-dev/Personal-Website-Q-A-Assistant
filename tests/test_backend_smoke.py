@@ -28,6 +28,11 @@ class FakeChatModel:
     def invoke(self, messages):
         return FakeMessage("这是 smoke test 的 mock 回答。")
 
+    def stream(self, messages):
+        yield FakeMessage("这是")
+        yield FakeMessage(" smoke test")
+        yield FakeMessage(" 的 mock 回答。")
+
 
 class FakeEmbeddings:
     def embed_documents(self, texts):
@@ -218,6 +223,43 @@ def test_api_smoke_without_network(tmp_path, monkeypatch):
     clear_response = client.delete("/upload_status")
     assert clear_response.status_code == 200
     assert clear_response.json()["has_uploaded_docs"] is False
+
+
+def test_chat_stream_returns_sse_events(tmp_path, monkeypatch):
+    configure_temp_settings(tmp_path)
+
+    resume_pdf = Settings.SELF_RESUME_DIR / "self_resume.pdf"
+    resume_pdf.write_bytes(b"%PDF-1.4 self")
+    STORE["self"] = [
+        Document(
+            page_content="孙雪海有 AI 应用开发、检索增强和智能体开发经验。",
+            metadata={
+                "source_file": resume_pdf.name,
+                "page": 1,
+                "page_label": "1",
+                "doc_type": "self_resume",
+            },
+        )
+    ]
+
+    fake_clients = FakeClients()
+    Settings.DASHSCOPE_API_KEY = "test-key"
+
+    monkeypatch.setattr(agent_service, "ResumeRetriever", FakeResumeRetriever)
+    monkeypatch.setattr(agent_service, "UploadedDocumentRetriever", FakeUploadedRetriever)
+    monkeypatch.setattr(agent_service, "KeywordRetriever", FakeKeywordRetriever)
+    monkeypatch.setattr("app.agent.synthesis.get_llm_clients", lambda: fake_clients)
+
+    client = TestClient(create_app())
+    response = client.post(
+        "/chat_stream",
+        json={"question": "请介绍一下你自己", "use_uploaded_docs": False},
+    )
+
+    assert response.status_code == 200
+    assert 'data: {"type": "token"' in response.text
+    assert '"type": "meta"' in response.text
+    assert '"type": "done"' in response.text
 
 
 def test_upload_rejects_oversized_pdf(tmp_path, monkeypatch):

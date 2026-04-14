@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import json
+from collections.abc import Iterator
+
 from app.agent.models import QueryAnalysis, RetrievedEvidence
 from app.core.llm import get_llm_clients
 
@@ -34,25 +37,54 @@ class ResponseSynthesizer:
         if not evidences:
             return "当前知识库中未找到相关信息。"
 
-        response = self.clients.chat_model.invoke(
-            [
-                {"role": "system", "content": SYNTHESIS_SYSTEM_PROMPT},
-                {
-                    "role": "user",
-                    "content": (
-                        f"用户问题：{question}\n\n"
-                        f"任务类型：{analysis.task_type}\n"
-                        f"知识源范围：{analysis.source_scope}\n\n"
-                        "请严格依据下面证据作答：\n\n"
-                        f"{self._format_evidence(evidences)}"
-                    ),
-                },
-            ]
-        )
+        response = self.clients.chat_model.invoke(self._build_messages(question, analysis, evidences))
         answer = str(response.content).strip()
         if not answer or self._is_refusal(answer):
             return self._build_extractive_fallback(evidences)
         return answer
+
+    def stream(self, question: str, analysis: QueryAnalysis, evidences: list[RetrievedEvidence]) -> Iterator[str]:
+        if not evidences:
+            yield self._encode_event("token", {"content": "当前知识库中未找到相关信息。"})
+            return
+
+        chunks: list[str] = []
+        for chunk in self.clients.chat_model.stream(self._build_messages(question, analysis, evidences)):
+            content = str(chunk.content or "")
+            if not content:
+                continue
+            chunks.append(content)
+            yield self._encode_event("token", {"content": content})
+
+        answer = "".join(chunks).strip()
+        if answer and not self._is_refusal(answer):
+            return
+
+        fallback = self._build_extractive_fallback(evidences)
+        if answer:
+            yield self._encode_event("replace", {"content": fallback})
+        else:
+            yield self._encode_event("token", {"content": fallback})
+
+    def _build_messages(
+        self,
+        question: str,
+        analysis: QueryAnalysis,
+        evidences: list[RetrievedEvidence],
+    ) -> list[dict[str, str]]:
+        return [
+            {"role": "system", "content": SYNTHESIS_SYSTEM_PROMPT},
+            {
+                "role": "user",
+                "content": (
+                    f"用户问题：{question}\n\n"
+                    f"任务类型：{analysis.task_type}\n"
+                    f"知识源范围：{analysis.source_scope}\n\n"
+                    "请严格依据下面证据作答：\n\n"
+                    f"{self._format_evidence(evidences)}"
+                ),
+            },
+        ]
 
     def _format_evidence(self, evidences: list[RetrievedEvidence]) -> str:
         sections: list[str] = []
@@ -75,3 +107,7 @@ class ResponseSynthesizer:
         if not lines:
             return "当前知识库中未找到相关信息。"
         return "根据当前检索到的证据，相关信息如下：\n" + "\n".join(lines)
+
+    def _encode_event(self, event_type: str, payload: dict) -> str:
+        body = {"type": event_type, **payload}
+        return f"data: {json.dumps(body, ensure_ascii=False)}\n\n"

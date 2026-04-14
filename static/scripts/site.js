@@ -15,19 +15,20 @@ function appendMessage(role, content) {
     wrapper.textContent = content;
     chatLog.appendChild(wrapper);
     chatLog.scrollTop = chatLog.scrollHeight;
+    return wrapper;
 }
 
 function routeLabel(routeTarget) {
-    if (routeTarget === "self_resume") return "\u6765\u81ea\u4e2a\u4eba\u7b80\u5386\u77e5\u8bc6\u5e93";
-    if (routeTarget === "uploaded_docs") return "\u6765\u81ea\u4e0a\u4f20\u6587\u6863\u77e5\u8bc6\u5e93";
-    if (routeTarget === "both") return "\u6765\u81ea\u53cc\u77e5\u8bc6\u5e93";
-    return "\u5df2\u5b8c\u6210\u56de\u7b54";
+    if (routeTarget === "self_resume") return "来自个人简历知识库";
+    if (routeTarget === "uploaded_docs") return "来自上传文档知识库";
+    if (routeTarget === "both") return "来自双知识库";
+    return "已完成回答";
 }
 
 async function uploadDocument(file) {
     const formData = new FormData();
     formData.append("file", file);
-    knowledgeStatus.textContent = `\u6b63\u5728\u5904\u7406\u4e0a\u4f20\u6587\u6863\uff1a${file.name}`;
+    knowledgeStatus.textContent = `正在处理上传文档：${file.name}`;
 
     const response = await fetch(`${apiBase}/upload_resume`, {
         method: "POST",
@@ -36,18 +37,18 @@ async function uploadDocument(file) {
 
     if (!response.ok) {
         const payload = await response.json().catch(() => ({}));
-        throw new Error(payload.detail || "\u4e0a\u4f20\u5931\u8d25");
+        throw new Error(payload.detail || "上传失败");
     }
 
     useUploadedDocs = true;
-    knowledgeStatus.textContent = `\u5df2\u52a0\u8f7d\u4e0a\u4f20\u6587\u6863\uff1a${file.name}`;
-    appendMessage("assistant", `\u5df2\u5b8c\u6210\u4e0a\u4f20\u5e76\u81ea\u52a8\u704c\u5e93\uff1a${file.name}`);
+    knowledgeStatus.textContent = `已加载上传文档：${file.name}`;
+    appendMessage("assistant", `已完成上传并自动灌库：${file.name}`);
 }
 
 async function fetchUploadStatus() {
     const response = await fetch(`${apiBase}/upload_status`);
     if (!response.ok) {
-        throw new Error("\u65e0\u6cd5\u83b7\u53d6\u4e0a\u4f20\u72b6\u6001");
+        throw new Error("无法获取上传状态");
     }
     return response.json();
 }
@@ -58,7 +59,7 @@ async function clearUploadedDocs() {
     });
     if (!response.ok) {
         const payload = await response.json().catch(() => ({}));
-        throw new Error(payload.detail || "\u65e0\u6cd5\u6e05\u7a7a\u4e0a\u4f20\u6587\u6863");
+        throw new Error(payload.detail || "无法清空上传文档");
     }
     return response.json();
 }
@@ -66,11 +67,11 @@ async function clearUploadedDocs() {
 function renderUploadStatus(payload) {
     if (payload.has_uploaded_docs && payload.active_file) {
         useUploadedDocs = true;
-        knowledgeStatus.textContent = `\u5df2\u52a0\u8f7d\u4e0a\u4f20\u6587\u6863\uff1a${payload.active_file}`;
+        knowledgeStatus.textContent = `已加载上传文档：${payload.active_file}`;
         return;
     }
     useUploadedDocs = false;
-    knowledgeStatus.textContent = "\u5f53\u524d\u6a21\u5f0f\uff1a\u4e2a\u4eba\u7b80\u5386\u95ee\u7b54";
+    knowledgeStatus.textContent = "当前模式：个人简历问答";
 }
 
 async function askQuestion(question) {
@@ -85,10 +86,66 @@ async function askQuestion(question) {
 
     if (!response.ok) {
         const payload = await response.json().catch(() => ({}));
-        throw new Error(payload.detail || "\u95ee\u7b54\u8bf7\u6c42\u5931\u8d25");
+        throw new Error(payload.detail || "问答请求失败");
     }
 
     return response.json();
+}
+
+async function streamQuestion(question, targetNode) {
+    const response = await fetch(`${apiBase}/chat_stream`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            question,
+            use_uploaded_docs: useUploadedDocs,
+        }),
+    });
+
+    if (!response.ok) {
+        const payload = await response.json().catch(() => ({}));
+        throw new Error(payload.detail || "问答请求失败");
+    }
+
+    const reader = response.body.getReader();
+    const decoder = new TextDecoder("utf-8");
+    let buffer = "";
+    let finalMeta = null;
+    let answerText = "";
+
+    while (true) {
+        const { value, done } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const parts = buffer.split("\n\n");
+        buffer = parts.pop() || "";
+
+        for (const part of parts) {
+            const line = part.trim();
+            if (!line.startsWith("data:")) continue;
+
+            const payload = JSON.parse(line.slice(5).trim());
+            if (payload.type === "token") {
+                answerText += payload.content || "";
+                targetNode.textContent = answerText;
+                chatLog.scrollTop = chatLog.scrollHeight;
+            } else if (payload.type === "replace") {
+                answerText = payload.content || "";
+                targetNode.textContent = answerText;
+                chatLog.scrollTop = chatLog.scrollHeight;
+            } else if (payload.type === "meta") {
+                finalMeta = payload;
+            }
+        }
+    }
+
+    if (finalMeta?.route_target) {
+        targetNode.textContent = `${answerText}\n\n${routeLabel(finalMeta.route_target)}`;
+        knowledgeStatus.textContent = routeLabel(finalMeta.route_target);
+    } else {
+        knowledgeStatus.textContent = "已完成回答";
+    }
 }
 
 uploadInput?.addEventListener("change", async (event) => {
@@ -98,8 +155,8 @@ uploadInput?.addEventListener("change", async (event) => {
     try {
         await uploadDocument(file);
     } catch (error) {
-        knowledgeStatus.textContent = "\u4e0a\u4f20\u5931\u8d25";
-        appendMessage("assistant", `\u4e0a\u4f20\u5931\u8d25\uff1a${error.message}`);
+        knowledgeStatus.textContent = "上传失败";
+        appendMessage("assistant", `上传失败：${error.message}`);
     } finally {
         uploadInput.value = "";
     }
@@ -109,9 +166,9 @@ clearUploadButton?.addEventListener("click", async () => {
     try {
         const payload = await clearUploadedDocs();
         renderUploadStatus(payload);
-        appendMessage("assistant", "\u5df2\u6e05\u7a7a\u4e0a\u4f20\u77e5\u8bc6\u5e93\uff0c\u5df2\u6062\u590d\u4e3a\u4e2a\u4eba\u7b80\u5386\u95ee\u7b54\u6a21\u5f0f\u3002");
+        appendMessage("assistant", "已清空上传知识库，已恢复为个人简历问答模式。");
     } catch (error) {
-        appendMessage("assistant", `\u6e05\u7a7a\u5931\u8d25\uff1a${error.message}`);
+        appendMessage("assistant", `清空失败：${error.message}`);
     }
 });
 
@@ -122,15 +179,20 @@ chatForm?.addEventListener("submit", async (event) => {
 
     appendMessage("user", question);
     chatInput.value = "";
-    knowledgeStatus.textContent = "\u6b63\u5728\u751f\u6210\u56de\u7b54...";
+    knowledgeStatus.textContent = "正在生成回答...";
+    const assistantNode = appendMessage("assistant", "");
 
     try {
-        const payload = await askQuestion(question);
-        appendMessage("assistant", `${payload.answer}\n\n${routeLabel(payload.route_target)}`);
-        knowledgeStatus.textContent = routeLabel(payload.route_target);
+        await streamQuestion(question, assistantNode);
     } catch (error) {
-        knowledgeStatus.textContent = "\u8bf7\u6c42\u5931\u8d25";
-        appendMessage("assistant", `\u8bf7\u6c42\u5931\u8d25\uff1a${error.message}`);
+        try {
+            const payload = await askQuestion(question);
+            assistantNode.textContent = `${payload.answer}\n\n${routeLabel(payload.route_target)}`;
+            knowledgeStatus.textContent = routeLabel(payload.route_target);
+        } catch (fallbackError) {
+            knowledgeStatus.textContent = "请求失败";
+            assistantNode.textContent = `请求失败：${fallbackError.message}`;
+        }
     }
 });
 
@@ -166,5 +228,5 @@ if ("IntersectionObserver" in window) {
 fetchUploadStatus()
     .then(renderUploadStatus)
     .catch(() => {
-        knowledgeStatus.textContent = "\u5f53\u524d\u6a21\u5f0f\uff1a\u4e2a\u4eba\u7b80\u5386\u95ee\u7b54";
+        knowledgeStatus.textContent = "当前模式：个人简历问答";
     });

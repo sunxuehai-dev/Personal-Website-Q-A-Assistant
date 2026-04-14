@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import json
+from collections.abc import Iterator
+
 from langchain_core.documents import Document
 
 from app.agent.analysis import QueryAnalyzer
@@ -23,6 +26,58 @@ class ResumeQAService:
         self.query_analyzer = QueryAnalyzer()
         self.retrieval_planner = RetrievalPlanner()
         self.response_synthesizer = ResponseSynthesizer()
+
+    def ask(self, question: str, use_uploaded_docs: bool = False) -> QAResponse:
+        analysis, _, evidences = self._prepare(question, use_uploaded_docs=use_uploaded_docs)
+        answer = self.response_synthesizer.synthesize(question, analysis, evidences)
+
+        return QAResponse(
+            answer=answer,
+            references=self._build_references(evidences),
+            route_target=analysis.source_scope,
+            route_reason=analysis.source_reason,
+            question_type=analysis.task_type,
+            question_type_reason=analysis.task_reason,
+        )
+
+    def ask_stream(self, question: str, use_uploaded_docs: bool = False) -> Iterator[str]:
+        analysis, _, evidences = self._prepare(question, use_uploaded_docs=use_uploaded_docs)
+        for event in self.response_synthesizer.stream(question, analysis, evidences):
+            yield event
+        yield self._encode_stream_event(
+            "meta",
+            {
+                "route_target": analysis.source_scope,
+                "route_reason": analysis.source_reason,
+                "question_type": analysis.task_type,
+                "question_type_reason": analysis.task_reason,
+                "references": self._build_references(evidences),
+            },
+        )
+        yield self._encode_stream_event("done", {})
+
+    def _prepare(self, question: str, *, use_uploaded_docs: bool):
+        analysis = self.query_analyzer.analyze(
+            question,
+            use_uploaded_docs=use_uploaded_docs,
+            has_uploaded_docs=self._has_uploaded_docs(use_uploaded_docs),
+        )
+        plan = self.retrieval_planner.plan(analysis)
+        evidence_groups = [
+            self._retrieve_for_step(
+                analysis,
+                source_scope=step.source_scope,
+                method=step.method,
+                limit=step.limit,
+            )
+            for step in plan.steps
+        ]
+        evidences = merge_evidences(
+            evidence_groups,
+            final_limit=plan.final_limit,
+            merge_mode=plan.merge_mode,
+        )
+        return analysis, plan, evidences
 
     def _build_references(self, evidences: list[RetrievedEvidence]) -> list[dict]:
         references: list[dict] = []
@@ -86,34 +141,5 @@ class ResumeQAService:
             )
         return self.upload_keyword_retriever.search(analysis.question, analysis.query_terms, top_k=limit)
 
-    def ask(self, question: str, use_uploaded_docs: bool = False) -> QAResponse:
-        analysis = self.query_analyzer.analyze(
-            question,
-            use_uploaded_docs=use_uploaded_docs,
-            has_uploaded_docs=self._has_uploaded_docs(use_uploaded_docs),
-        )
-        plan = self.retrieval_planner.plan(analysis)
-        evidence_groups = [
-            self._retrieve_for_step(
-                analysis,
-                source_scope=step.source_scope,
-                method=step.method,
-                limit=step.limit,
-            )
-            for step in plan.steps
-        ]
-        evidences = merge_evidences(
-            evidence_groups,
-            final_limit=plan.final_limit,
-            merge_mode=plan.merge_mode,
-        )
-        answer = self.response_synthesizer.synthesize(question, analysis, evidences)
-
-        return QAResponse(
-            answer=answer,
-            references=self._build_references(evidences),
-            route_target=analysis.source_scope,
-            route_reason=analysis.source_reason,
-            question_type=analysis.task_type,
-            question_type_reason=analysis.task_reason,
-        )
+    def _encode_stream_event(self, event_type: str, payload: dict) -> str:
+        return f"data: {json.dumps({'type': event_type, **payload}, ensure_ascii=False)}\n\n"

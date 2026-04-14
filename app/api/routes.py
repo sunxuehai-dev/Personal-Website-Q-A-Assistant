@@ -3,6 +3,7 @@ from __future__ import annotations
 from pathlib import Path
 
 from fastapi import APIRouter, File, HTTPException, UploadFile
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
 
 from app.agent.service import ResumeQAService
@@ -151,4 +152,30 @@ def chat(payload: ChatRequest) -> ChatResponse:
         route_reason=response.route_reason,
         question_type=response.question_type,
         question_type_reason=response.question_type_reason,
+    )
+
+
+@router.post("/chat_stream")
+def chat_stream(payload: ChatRequest) -> StreamingResponse:
+    question = payload.question.strip()
+    if not question:
+        raise HTTPException(status_code=400, detail="Question cannot be empty.")
+
+    resume_files = list(Settings.SELF_RESUME_DIR.glob("*.pdf"))
+    if not resume_files:
+        raise HTTPException(status_code=400, detail="No self resume has been ingested yet.")
+
+    try:
+        stream = ResumeQAService().ask_stream(question, use_uploaded_docs=payload.use_uploaded_docs)
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=_normalize_chat_error(exc)) from exc
+
+    return StreamingResponse(
+        stream,
+        media_type="text/event-stream",
+        headers={
+            "Cache-Control": "no-cache",
+            "Connection": "keep-alive",
+            "X-Accel-Buffering": "no",
+        },
     )
