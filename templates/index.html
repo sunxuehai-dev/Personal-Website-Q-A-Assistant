@@ -10,91 +10,105 @@
     <link rel="stylesheet" href="{{ url_for('static', path='/styles/site.css') }}">
 </head>
 <body>
-    <div class="site-shell">
+    <div class="page-frame">
+        <div class="ambient ambient-left"></div>
+        <div class="ambient ambient-right"></div>
+
         <header class="topbar">
-            <a class="brand" href="#hero">Sun Xuehai</a>
+            <a class="brand" href="#hero">
+                <span class="brand-mark">SXH</span>
+                <span class="brand-copy">
+                    <strong>{{ profile.name }}</strong>
+                    <small>AI 应用开发工程师</small>
+                </span>
+            </a>
             <nav class="nav">
-                <a href="#about">&#20851;&#20110;&#25105;</a>
-                <a href="#experience">&#32463;&#21382;</a>
-                <a href="#projects">&#39033;&#30446;</a>
-                <a href="#assistant">&#31616;&#21382;&#21161;&#25163;</a>
+                <a href="#about">关于我</a>
+                <a href="#experience">经历</a>
+                <a href="#projects">项目</a>
+                <a href="#assistant">问答助手</a>
             </nav>
         </header>
 
-        <main>
+        <main class="page-main">
             <section id="hero" class="hero">
-                <div class="hero-copy">
-                    <p class="eyebrow">AI Application Engineer</p>
+                <div class="hero-intro reveal">
+                    <p class="eyebrow">AI Productized Engineering</p>
                     <h1>{{ profile.name }}</h1>
-                    <h2>{{ profile.title }}</h2>
+                    <p class="hero-title">{{ profile.title }}</p>
                     <p class="hero-text">{{ profile.tagline }}</p>
-                    <p class="hero-summary">
-                        &#25105;&#19987;&#27880;&#20110;&#25226;&#26816;&#32034;&#22686;&#24378;&#29983;&#25104;&#12289;Agent &#24037;&#20316;&#27969;&#21644;&#22823;&#27169;&#22411;&#25509;&#21475;&#33021;&#21147;&#65292;
-                        &#20570;&#25104;&#30495;&#27491;&#21487;&#25509;&#20837;&#19994;&#21153;&#12289;&#21487;&#37096;&#32626;&#12289;&#21487;&#28436;&#31034;&#30340;&#24212;&#29992;&#31995;&#32479;&#12290;
-                    </p>
-                    <div class="hero-ribbon">
-                        <span>RAG Systems</span>
-                        <span>Agent Workflows</span>
-                        <span>FastAPI Engineering</span>
-                    </div>
+
                     <div class="hero-actions">
-                        <a class="btn btn-primary" href="#assistant">&#19982;&#25105;&#23545;&#35805;</a>
-                        <a class="btn btn-secondary" href="#projects">&#26597;&#30475;&#39033;&#30446;</a>
+                        <a class="btn btn-primary" href="#assistant">立即提问</a>
+                        <a class="btn btn-secondary" href="#projects">查看项目</a>
                     </div>
-                    <ul class="hero-metrics">
-                        <li><strong>4+</strong><span>&#20195;&#34920;&#39033;&#30446;</span></li>
-                        <li><strong>RAG</strong><span>&#26816;&#32034;&#38382;&#31572;&#23454;&#36341;</span></li>
-                        <li><strong>Agent</strong><span>&#27969;&#31243;&#32534;&#25490;&#32463;&#39564;</span></li>
-                    </ul>
-                    <div class="hero-highlights">
-                        <article class="highlight-card">
-                            <p class="highlight-label">What I Build</p>
-                            <p>&#32858;&#28966;&#31616;&#21382;&#38382;&#31572;&#12289;&#22823;&#27169;&#22411; API &#25509;&#20837;&#12289;&#36771;&#32451;&#25512;&#29702;&#26381;&#21153;&#21270;&#19982;&#26816;&#32034;&#22686;&#24378;&#24037;&#20316;&#27969;&#12290;</p>
+
+                    <div class="hero-stats">
+                        <article>
+                            <strong>RAG</strong>
+                            <span>检索问答与知识库工程</span>
                         </article>
-                        <article class="highlight-card">
-                            <p class="highlight-label">How I Work</p>
-                            <p>&#20174;&#21518;&#31471;&#25509;&#21475;&#12289;&#25991;&#26723;&#28748;&#24211;&#12289;&#36335;&#30001;&#26816;&#32034;&#21040;&#21069;&#31471;&#20132;&#20114;&#65292;&#20542;&#21521;&#20110;&#25226;&#33021;&#21147;&#20570;&#25104;&#21487;&#28436;&#31034;&#30340;&#20135;&#21697;&#12290;</p>
+                        <article>
+                            <strong>Agent</strong>
+                            <span>轻量工作流与路由编排</span>
+                        </article>
+                        <article>
+                            <strong>FastAPI</strong>
+                            <span>后端服务、部署与交互闭环</span>
                         </article>
                     </div>
                 </div>
 
-                <aside class="hero-panel">
-                    <div class="portrait-card">
-                        <div class="portrait-frame">
+                <div class="hero-stage reveal">
+                    <article class="profile-card">
+                        <div class="profile-visual">
                             <img
                                 class="portrait-image"
                                 src="{{ url_for('static', path='/images/profile.jpg') }}"
                                 alt="{{ profile.name }}"
                             >
                         </div>
-                    </div>
-                    <div class="status-card">
-                        <p class="card-label">Profile Snapshot</p>
-                        <ul>
-                            <li><span>Location</span><strong>{{ profile.location }}</strong></li>
-                            <li><span>Email</span><strong>{{ profile.email }}</strong></li>
-                            <li><span>Phone</span><strong>{{ profile.phone }}</strong></li>
-                            <li><span>Focus</span><strong>RAG / Agent / LLM Apps</strong></li>
-                        </ul>
-                    </div>
-                </aside>
+                        <div class="profile-meta">
+                            <p class="eyebrow">Current Snapshot</p>
+                            <h2>把模型能力做成可演示、可部署、可扩展的应用系统</h2>
+                            <ul class="meta-list">
+                                <li><span>所在地</span><strong>{{ profile.location }}</strong></li>
+                                <li><span>邮箱</span><strong>{{ profile.email }}</strong></li>
+                                <li><span>电话</span><strong>{{ profile.phone }}</strong></li>
+                                <li><span>方向</span><strong>RAG / Agent / LLM 应用</strong></li>
+                            </ul>
+                        </div>
+                    </article>
+
+                    <article class="hero-note">
+                        <p class="eyebrow">What This Site Does</p>
+                        <p>
+                            这不是静态作品页，而是一个可直接体验的个人项目。你可以浏览我的经历与项目，也可以直接和问答助手对话，
+                            默认围绕我的简历知识库回答；上传 PDF 后，会切换为面向该文档的问答场景。
+                        </p>
+                    </article>
+                </div>
             </section>
 
-            <section id="about" class="section section-grid reveal">
-                <div>
+            <section id="about" class="section section-split reveal">
+                <div class="section-heading">
                     <p class="section-tag">About</p>
-                    <h3>&#25226;&#22823;&#27169;&#22411;&#33021;&#21147;&#20570;&#25104;&#30495;&#23454;&#21487;&#29992;&#30340;&#24037;&#31243;&#31995;&#32479;</h3>
+                    <h3>关注的不只是模型效果，更是工程落地质量</h3>
                 </div>
-                <div class="section-body">
-                    <p>&#25105;&#20851;&#27880;&#30340;&#19981;&#21482;&#26159;&#27169;&#22411;&#25928;&#26524;&#65292;&#26356;&#20851;&#27880;&#22914;&#20309;&#25226;&#26816;&#32034;&#12289;&#25512;&#29702;&#12289;&#20219;&#21153;&#31649;&#29702;&#12289;&#25509;&#21475;&#26381;&#21153;&#21644;&#20132;&#20114;&#20307;&#39564;&#30495;&#27491;&#33853;&#21040;&#20135;&#21697;&#20013;&#12290;</p>
-                    <p>&#36825;&#20010;&#32593;&#31449;&#26412;&#36523;&#23601;&#26159;&#19968;&#20010;&#20316;&#21697;&#65306;&#23427;&#19981;&#20165;&#23637;&#31034;&#25105;&#30340;&#32463;&#21382;&#65292;&#20063;&#20801;&#35768;&#20320;&#30452;&#25509;&#21644;&#25105;&#30340;&#31616;&#21382;&#23545;&#35805;&#65292;&#24182;&#22312;&#19978;&#20256; PDF &#21518;&#20999;&#25442;&#21040;&#26032;&#30340;&#30693;&#35782;&#24211;&#38382;&#31572;&#22330;&#26223;&#12290;</p>
+                <div class="section-panel">
+                    <p>
+                        我更关注完整链路是否成立: 检索是否可靠，回答是否自然，接口是否可维护，部署是否稳定，前后端是否形成可演示的产品体验。
+                    </p>
+                    <p>
+                        这个项目围绕个人简历问答、上传 PDF 问答、流式响应、知识库切换和部署脚本逐步演进，目标不是堆概念，而是把能力整理成一套小而完整的 AI 应用范式。
+                    </p>
                 </div>
             </section>
 
             <section id="experience" class="section reveal">
-                <div class="section-head">
+                <div class="section-heading">
                     <p class="section-tag">Experience</p>
-                    <h3>&#25945;&#32946;&#19982;&#24037;&#20316;&#32463;&#21382;</h3>
+                    <h3>教育与工作经历</h3>
                 </div>
                 <div class="timeline">
                     {% for item in experience %}
@@ -109,9 +123,9 @@
             </section>
 
             <section id="projects" class="section reveal">
-                <div class="section-head">
+                <div class="section-heading">
                     <p class="section-tag">Projects</p>
-                    <h3>&#37325;&#28857;&#39033;&#30446;</h3>
+                    <h3>重点项目</h3>
                 </div>
                 <div class="project-grid">
                     {% for item in projects %}
@@ -119,18 +133,18 @@
                         <p class="project-stack">{{ item.stack }}</p>
                         <h4>{{ item.name }}</h4>
                         <p>{{ item.description }}</p>
-                        <div class="project-arrow">Explore</div>
+                        <span class="project-index">0{{ loop.index }}</span>
                     </article>
                     {% endfor %}
                 </div>
             </section>
 
             <section class="section reveal">
-                <div class="section-head">
+                <div class="section-heading">
                     <p class="section-tag">Skills</p>
-                    <h3>&#25216;&#26415;&#26632;</h3>
+                    <h3>技术栈</h3>
                 </div>
-                <div class="skill-cloud">
+                <div class="skills-board">
                     {% for skill in skills %}
                     <span>{{ skill }}</span>
                     {% endfor %}
@@ -140,47 +154,58 @@
             <section id="assistant" class="section assistant-section reveal">
                 <div class="assistant-header">
                     <div>
-                        <p class="section-tag">Ask My Resume</p>
-                        <h3>&#19982;&#25105;&#30340;&#31616;&#21382;&#23545;&#35805;</h3>
+                        <p class="section-tag">Assistant</p>
+                        <h3>和我的简历或文档直接对话</h3>
                     </div>
-                    <div class="assistant-note">
-                        <p>&#40664;&#35748;&#22238;&#31572;&#20851;&#20110;&#23385;&#38634;&#28023;&#26412;&#20154;&#30340;&#38382;&#39064;&#12290;&#19978;&#20256; PDF &#21518;&#65292;&#31995;&#32479;&#20250;&#33258;&#21160;&#28748;&#24211;&#65292;&#24182;&#25903;&#25345;&#38024;&#23545;&#19978;&#20256;&#25991;&#26723;&#36827;&#34892;&#38382;&#31572;&#12290;</p>
-                    </div>
+                    <p class="assistant-description">
+                        默认回答与我本人、项目和经历相关的问题。上传 PDF 后，助手会自动切换到当前文档知识库进行问答。
+                    </p>
                 </div>
 
                 <div class="assistant-shell">
-                    <div class="assistant-toolbar">
-                        <span id="knowledge-status" class="status-pill">&#24403;&#21069;&#27169;&#24335;&#65306;&#20010;&#20154;&#31616;&#21382;&#38382;&#31572;</span>
-                        <div class="assistant-actions">
+                    <div class="assistant-sidebar">
+                        <div class="assistant-status-card">
+                            <p class="eyebrow">Knowledge Mode</p>
+                            <span id="knowledge-status" class="status-pill">当前模式：个人简历问答</span>
+                        </div>
+
+                        <div class="assistant-control-card">
+                            <p class="assistant-card-title">文档操作</p>
                             <label class="upload-chip">
                                 <input id="resume-upload" type="file" accept=".pdf">
-                                <span>&#19978;&#20256; PDF</span>
+                                <span>上传 PDF</span>
                             </label>
-                            <button id="clear-upload" type="button" class="ghost-action">&#28165;&#31354;&#19978;&#20256;</button>
+                            <button id="clear-upload" type="button" class="ghost-action">清空上传</button>
                         </div>
-                    </div>
-                    <div class="suggestion-row">
-                        <button type="button" class="suggestion-chip" data-question="&#35831;&#20171;&#32461;&#23385;&#38634;&#28023;&#30340;&#24037;&#20316;&#32463;&#21382;">&#24037;&#20316;&#32463;&#21382;</button>
-                        <button type="button" class="suggestion-chip" data-question="&#35831;&#24635;&#32467;&#25105;&#30340;&#25216;&#26415;&#26632;">&#25216;&#26415;&#26632;</button>
-                        <button type="button" class="suggestion-chip" data-question="&#25105;&#20570;&#36807;&#21738;&#20123; AI &#39033;&#30446;&#65311;">AI &#39033;&#30446;</button>
-                    </div>
 
-                    <div id="chat-log" class="chat-log">
-                        <div class="message assistant">
-                            &#20320;&#21487;&#20197;&#30452;&#25509;&#38382;&#25105;&#65306;&#20570;&#36807;&#21738;&#20123;&#39033;&#30446;&#12289;&#25216;&#26415;&#26632;&#26159;&#20160;&#20040;&#12289;&#20026;&#20160;&#20040;&#36873;&#25321; AI &#24212;&#29992;&#24320;&#21457;&#65292;&#20063;&#21487;&#20197;&#19978;&#20256;&#19968;&#20221; PDF &#35753;&#25105;&#19968;&#36215;&#20998;&#26512;&#12290;
+                        <div class="assistant-control-card">
+                            <p class="assistant-card-title">快捷问题</p>
+                            <div class="suggestion-row">
+                                <button type="button" class="suggestion-chip" data-question="请介绍孙雪海的工作经历。">工作经历</button>
+                                <button type="button" class="suggestion-chip" data-question="请总结我的技术栈。">技术栈</button>
+                                <button type="button" class="suggestion-chip" data-question="我做过哪些 AI 项目？">AI 项目</button>
+                            </div>
                         </div>
                     </div>
 
-                    <form id="chat-form" class="chat-form">
-                        <textarea id="chat-input" rows="3" placeholder="&#20363;&#22914;&#65306;&#35831;&#20171;&#32461;&#23385;&#38634;&#28023;&#30340;&#24037;&#20316;&#32463;&#21382;"></textarea>
-                        <button type="submit" class="btn btn-primary">&#21457;&#36865;&#38382;&#39064;</button>
-                    </form>
+                    <div class="assistant-main">
+                        <div id="chat-log" class="chat-log">
+                            <div class="message assistant">
+                                你可以直接问我个人经历、项目、技术栈，也可以上传一份 PDF，让我基于那份文档继续问答。
+                            </div>
+                        </div>
+
+                        <form id="chat-form" class="chat-form">
+                            <textarea id="chat-input" rows="3" placeholder="例如：请介绍孙雪海的工作经历"></textarea>
+                            <button type="submit" class="btn btn-primary">发送问题</button>
+                        </form>
+                    </div>
                 </div>
             </section>
         </main>
 
         <footer class="footer">
-            <p>Built with FastAPI, Chroma and a resume-focused RAG workflow.</p>
+            <p>Built with FastAPI, Chroma, Qwen and a lightweight resume-first QA workflow.</p>
             <p>{{ profile.email }}</p>
         </footer>
     </div>
