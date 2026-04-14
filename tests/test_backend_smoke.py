@@ -25,50 +25,9 @@ class FakeMessage:
         self.content = content
 
 
-class FakeAnnotation:
-    def __init__(self, title: str, url: str):
-        self.title = title
-        self.url = url
-
-
-class FakeOutputText:
-    def __init__(self, annotations):
-        self.type = "output_text"
-        self.annotations = annotations
-
-
-class FakeOutputMessage:
-    def __init__(self, content):
-        self.type = "message"
-        self.content = content
-
-
-class FakeWebResponse:
-    def __init__(self, summary: str):
-        self.output_text = summary
-        self.output = [
-            FakeOutputMessage(
-                [
-                    FakeOutputText(
-                        [FakeAnnotation("OpenAI", "https://openai.com/index/new-tools-for-building-agents/")]
-                    )
-                ]
-            )
-        ]
-
-
-class FakeCompletionMessage:
-    def __init__(self, content: str):
-        self.content = content
-        self.annotations = [
-            FakeAnnotation("OpenAI", "https://openai.com/index/new-tools-for-building-agents/")
-        ]
-        self.tool_calls = []
-
-
 class FakeChoice:
     def __init__(self, content: str):
-        self.message = FakeCompletionMessage(content)
+        self.message = type("Message", (), {"content": content})()
 
 
 class FakeChatCompletionResponse:
@@ -82,11 +41,9 @@ class FakeChatModel:
             return FakeMessage(self._json_response(messages))
 
         payload = messages[1]["content"]
-        if "联网补充信息" in payload:
-            return FakeMessage("结合本地资料来看，这个项目有较强工程化实现。结合联网信息，这种做法符合当前主流轻量 Agent 方向。")
         if "本地资料证据" in payload and "无" not in payload:
             return FakeMessage("根据本地资料，孙雪海有 AI 应用开发、RAG 和个人网站相关项目经验。")
-        return FakeMessage("这是一个通用回答，会结合联网信息补充。")
+        return FakeMessage("这是通用回答。")
 
     def stream(self, messages):
         content = str(self.invoke(messages).content)
@@ -121,16 +78,18 @@ class FakeEmbeddings:
 
 class FakeResponseClient:
     def __init__(self):
-        self.responses = self
         self.chat = self
         self.completions = self
 
     def create(self, *args, **kwargs):
         del args
-        extra_body = kwargs.get("extra_body")
-        if extra_body and extra_body.get("enable_search") is True:
-            return FakeChatCompletionResponse("联网搜索显示，当前主流 Agent 通常采用路由加工具调用的轻量编排。")
-        return FakeWebResponse("联网搜索显示，当前主流 Agent 通常采用路由加工具调用的轻量编排。")
+        messages = kwargs.get("messages", [])
+        payload = messages[1]["content"] if len(messages) > 1 else ""
+        if "现在主流的 agent 框架有哪些" in payload:
+            return FakeChatCompletionResponse("当前主流 Agent 框架包括 LangGraph、AutoGen、CrewAI 等。")
+        if "无" in payload:
+            return FakeChatCompletionResponse("我目前没有可靠的本地资料证据，但可以先给你一个通用回答。")
+        return FakeChatCompletionResponse("根据本地资料，孙雪海有 AI 应用开发、RAG 和个人网站相关项目经验。")
 
 
 class FakeClients:
@@ -232,7 +191,6 @@ def patch_fake_llm(monkeypatch):
     fake_clients = FakeClients()
     monkeypatch.setattr("app.agent.router.get_llm_clients", lambda: fake_clients)
     monkeypatch.setattr("app.agent.synthesis.get_llm_clients", lambda: fake_clients)
-    monkeypatch.setattr("app.agent.web_search.get_llm_clients", lambda: fake_clients)
     monkeypatch.setattr("app.agent.rewrite.get_llm_clients", lambda: fake_clients)
     return fake_clients
 

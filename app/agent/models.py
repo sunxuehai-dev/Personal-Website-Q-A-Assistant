@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 
 
 @dataclass
@@ -54,24 +54,11 @@ class RetrievalBundle:
 
 
 @dataclass
-class WebCitation:
-    title: str
-    url: str
-
-
-@dataclass
-class WebSearchResult:
-    summary: str
-    citations: list[WebCitation] = field(default_factory=list)
-
-
-@dataclass
 class AnswerDraft:
     answer: str
     used_local_context: bool
     used_web_search: bool
     source_badge: str
-    web_result: WebSearchResult | None = None
 
 
 @dataclass

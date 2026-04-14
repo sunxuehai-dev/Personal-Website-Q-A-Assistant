@@ -84,16 +84,15 @@ class ResumeQAService:
             retry=False,
         )
 
-        final_question = question
         final_retrieval = retrieval
         final_draft = draft
         retried = False
 
         if evaluation.decision == "retry":
             retried = True
-            final_question = self.retry_rewriter.rewrite(question, relevance=relevance.relevance)
+            rewritten_question = self.retry_rewriter.rewrite(question, relevance=relevance.relevance)
             final_retrieval = self._retrieve(
-                final_question,
+                rewritten_question,
                 relevance=relevance.relevance,
                 use_uploaded_docs=use_uploaded_docs,
                 has_uploaded_docs=has_uploaded_docs,
@@ -108,7 +107,7 @@ class ResumeQAService:
 
         return {
             "answer": final_draft.answer,
-            "references": self._build_references(final_retrieval.evidences, final_draft.web_result),
+            "references": self._build_references(final_retrieval.evidences),
             "source_badge": final_draft.source_badge,
             "used_local_context": final_draft.used_local_context,
             "used_web_search": final_draft.used_web_search,
@@ -157,7 +156,7 @@ class ResumeQAService:
             retrieval_quality=self._assess_retrieval_quality(evidences),
         )
 
-    def _build_references(self, evidences: list[RetrievedEvidence], web_result) -> list[dict]:
+    def _build_references(self, evidences: list[RetrievedEvidence]) -> list[dict]:
         references: list[dict] = []
         for evidence in evidences:
             references.append(
@@ -171,15 +170,6 @@ class ResumeQAService:
                     "score": round(evidence.score, 4),
                 }
             )
-        if web_result:
-            for citation in web_result.citations:
-                references.append(
-                    {
-                        "source_kind": "web",
-                        "title": citation.title,
-                        "url": citation.url,
-                    }
-                )
         return references
 
     def _assess_retrieval_quality(self, evidences: list[RetrievedEvidence]) -> str:
