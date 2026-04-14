@@ -21,8 +21,8 @@ class WebSearchService:
                 {
                     "role": "system",
                     "content": (
-                        "你是一个中文联网搜索助手。请基于联网结果回答，保持简洁准确。"
-                        "如果信息存在时效性，优先采用更近期的结果。"
+                        "你是中文联网搜索助手。请基于联网结果回答，保持简洁准确。"
+                        "如果信息存在时效性，优先采用更近期结果。"
                     ),
                 },
                 {
@@ -57,10 +57,10 @@ class WebSearchService:
                     input=prompt,
                 )
                 return self._parse_responses_api_output(response)
-            except Exception as exc:  # pragma: no cover - network/provider dependent
+            except Exception as exc:  # pragma: no cover
                 last_error = exc
 
-        if last_error is None:  # pragma: no cover - defensive
+        if last_error is None:  # pragma: no cover
             raise RuntimeError("Web search failed without provider error.")
         raise last_error
 

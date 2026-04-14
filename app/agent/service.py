@@ -6,11 +6,12 @@ from collections.abc import Iterator
 from langchain_core.documents import Document
 
 from app.agent.analysis import QueryAnalyzer
-from app.agent.models import QAResponse, QueryAnalysis, RetrievedEvidence, RouterDecision, WebSearchResult
+from app.agent.evaluation import AnswerEvaluator
+from app.agent.models import QAResponse, QueryAnalysis, RetrievedEvidence, RetrievalBundle
 from app.agent.planning import RetrievalPlanner
-from app.agent.router import QueryRouter
+from app.agent.rewrite import RetryRewriter
+from app.agent.router import LocalRelevanceJudge
 from app.agent.synthesis import ResponseSynthesizer
-from app.agent.web_search import WebSearchService
 from app.core.config import Settings
 from app.retrieval.hybrid import merge_evidences
 from app.retrieval.keyword import KeywordRetriever
@@ -18,92 +19,145 @@ from app.retrieval.retriever import ResumeRetriever, UploadedDocumentRetriever
 
 
 class ResumeQAService:
-    """Lightweight orchestrated assistant for local RAG and web search."""
+    """Unified assistant with optional local RAG and single retry."""
 
     def __init__(self, top_k: int = 4):
         self.self_retriever = ResumeRetriever(top_k=top_k)
         self.upload_retriever = UploadedDocumentRetriever(top_k=top_k)
         self.self_keyword_retriever = KeywordRetriever(Settings.SELF_RESUME_DIR, "self_resume")
         self.upload_keyword_retriever = KeywordRetriever(Settings.UPLOAD_DIR, "uploaded_docs")
-        self.router = QueryRouter()
+        self.relevance_judge = LocalRelevanceJudge()
         self.query_analyzer = QueryAnalyzer()
         self.retrieval_planner = RetrievalPlanner()
-        self.web_search = WebSearchService()
         self.response_synthesizer = ResponseSynthesizer()
+        self.answer_evaluator = AnswerEvaluator()
+        self.retry_rewriter = RetryRewriter()
 
     def ask(self, question: str, use_uploaded_docs: bool = False) -> QAResponse:
-        decision, analysis, evidences, web_result = self._prepare(question, use_uploaded_docs=use_uploaded_docs)
-        answer = self.response_synthesizer.synthesize(question, decision, analysis, evidences, web_result)
-
+        result = self._run_pipeline(question, use_uploaded_docs=use_uploaded_docs)
         return QAResponse(
-            answer=answer,
-            references=self._build_references(evidences, web_result),
-            route=decision.route,
-            route_reason=decision.reason,
-            response_mode=decision.response_mode,
-            source_badge=self._build_source_badge(decision, analysis),
-            local_task_type=analysis.task_type if analysis else None,
-            local_task_reason=analysis.task_reason if analysis else None,
+            answer=result["answer"],
+            references=result["references"],
+            source_badge=result["source_badge"],
+            used_local_context=result["used_local_context"],
+            used_web_search=result["used_web_search"],
+            retried=result["retried"],
         )
 
     def ask_stream(self, question: str, use_uploaded_docs: bool = False) -> Iterator[str]:
-        decision, analysis, evidences, web_result = self._prepare(question, use_uploaded_docs=use_uploaded_docs)
-        for event in self.response_synthesizer.stream(question, decision, analysis, evidences, web_result):
-            yield event
+        result = self._run_pipeline(question, use_uploaded_docs=use_uploaded_docs)
+        yield self._encode_stream_event("token", {"content": result["answer"]})
         yield self._encode_stream_event(
             "meta",
             {
-                "route": decision.route,
-                "route_reason": decision.reason,
-                "response_mode": decision.response_mode,
-                "source_badge": self._build_source_badge(decision, analysis),
-                "references": self._build_references(evidences, web_result),
-                "local_task_type": analysis.task_type if analysis else None,
-                "local_task_reason": analysis.task_reason if analysis else None,
+                "references": result["references"],
+                "source_badge": result["source_badge"],
+                "used_local_context": result["used_local_context"],
+                "used_web_search": result["used_web_search"],
+                "retried": result["retried"],
             },
         )
         yield self._encode_stream_event("done", {})
 
-    def _prepare(self, question: str, *, use_uploaded_docs: bool):
+    def _run_pipeline(self, question: str, *, use_uploaded_docs: bool):
         has_uploaded_docs = self._has_uploaded_docs(use_uploaded_docs)
-        decision = self.router.route(question, has_uploaded_docs=has_uploaded_docs)
+        relevance = self.relevance_judge.judge(question, has_uploaded_docs=has_uploaded_docs)
 
-        analysis: QueryAnalysis | None = None
-        evidences: list[RetrievedEvidence] = []
-        web_result: WebSearchResult | None = None
+        retrieval = self._retrieve(
+            question,
+            relevance=relevance.relevance,
+            use_uploaded_docs=use_uploaded_docs,
+            has_uploaded_docs=has_uploaded_docs,
+            retry=False,
+        )
+        draft = self.response_synthesizer.synthesize(
+            question=question,
+            relevance=relevance.relevance,
+            evidences=retrieval.evidences,
+            retry=False,
+        )
+        evaluation = self.answer_evaluator.evaluate(
+            question=question,
+            relevance=relevance.relevance,
+            retrieval_quality=retrieval.retrieval_quality,
+            answer=draft.answer,
+            retry=False,
+        )
 
-        if decision.use_local_rag:
-            analysis = self.query_analyzer.analyze(
-                question,
+        final_question = question
+        final_retrieval = retrieval
+        final_draft = draft
+        retried = False
+
+        if evaluation.decision == "retry":
+            retried = True
+            final_question = self.retry_rewriter.rewrite(question, relevance=relevance.relevance)
+            final_retrieval = self._retrieve(
+                final_question,
+                relevance=relevance.relevance,
                 use_uploaded_docs=use_uploaded_docs,
                 has_uploaded_docs=has_uploaded_docs,
+                retry=True,
             )
-            plan = self.retrieval_planner.plan(analysis)
-            evidence_groups = [
-                self._retrieve_for_step(
-                    analysis,
-                    source_scope=step.source_scope,
-                    method=step.method,
-                    limit=step.limit,
-                )
-                for step in plan.steps
-            ]
-            evidences = merge_evidences(
-                evidence_groups,
-                final_limit=plan.final_limit,
-                merge_mode=plan.merge_mode,
+            final_draft = self.response_synthesizer.synthesize(
+                question=question,
+                relevance=relevance.relevance,
+                evidences=final_retrieval.evidences,
+                retry=True,
             )
 
-        if decision.use_web_search:
-            web_result = self.web_search.search(question)
+        return {
+            "answer": final_draft.answer,
+            "references": self._build_references(final_retrieval.evidences, final_draft.web_result),
+            "source_badge": final_draft.source_badge,
+            "used_local_context": final_draft.used_local_context,
+            "used_web_search": final_draft.used_web_search,
+            "retried": retried,
+        }
 
-        return decision, analysis, evidences, web_result
-
-    def _build_references(
+    def _retrieve(
         self,
-        evidences: list[RetrievedEvidence],
-        web_result: WebSearchResult | None,
-    ) -> list[dict]:
+        question: str,
+        *,
+        relevance: str,
+        use_uploaded_docs: bool,
+        has_uploaded_docs: bool,
+        retry: bool,
+    ) -> RetrievalBundle:
+        if relevance == "low":
+            return RetrievalBundle(evidences=[], retrieval_quality="empty")
+
+        analysis = self.query_analyzer.analyze(
+            question,
+            use_uploaded_docs=use_uploaded_docs,
+            has_uploaded_docs=has_uploaded_docs,
+        )
+        plan = self.retrieval_planner.plan(analysis)
+        if retry:
+            plan.final_limit = max(plan.final_limit + 2, 6)
+            for step in plan.steps:
+                step.limit += 2
+
+        evidence_groups = [
+            self._retrieve_for_step(
+                analysis,
+                source_scope=step.source_scope,
+                method=step.method,
+                limit=step.limit,
+            )
+            for step in plan.steps
+        ]
+        evidences = merge_evidences(
+            evidence_groups,
+            final_limit=plan.final_limit,
+            merge_mode=plan.merge_mode,
+        )
+        return RetrievalBundle(
+            evidences=evidences,
+            retrieval_quality=self._assess_retrieval_quality(evidences),
+        )
+
+    def _build_references(self, evidences: list[RetrievedEvidence], web_result) -> list[dict]:
         references: list[dict] = []
         for evidence in evidences:
             references.append(
@@ -128,20 +182,12 @@ class ResumeQAService:
                 )
         return references
 
-    def _build_source_badge(self, decision: RouterDecision, analysis: QueryAnalysis | None) -> str:
-        if decision.route == "chat":
-            return "直接对话"
-        if decision.route == "web_search":
-            return "已联网搜索"
-        if decision.route == "hybrid":
-            return "本地资料 + 联网分析"
-        if analysis is None:
-            return "需要澄清"
-        if analysis.source_scope == "uploaded_docs":
-            return "基于上传文档"
-        if analysis.source_scope == "both":
-            return "基于本地双知识源"
-        return "基于本地资料"
+    def _assess_retrieval_quality(self, evidences: list[RetrievedEvidence]) -> str:
+        if not evidences:
+            return "empty"
+        if len(evidences) >= 3 and evidences[0].score >= 0.45:
+            return "strong"
+        return "weak"
 
     def _has_uploaded_docs(self, use_uploaded_docs: bool) -> bool:
         return use_uploaded_docs and any(Settings.UPLOAD_DIR.glob("*.pdf"))

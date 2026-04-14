@@ -4,12 +4,8 @@ from dataclasses import dataclass, field
 
 
 @dataclass
-class RouterDecision:
-    route: str
-    use_local_rag: bool
-    use_web_search: bool
-    response_mode: str
-    needs_clarification: bool
+class RelevanceDecision:
+    relevance: str
     reason: str
 
 
@@ -52,6 +48,12 @@ class RetrievedEvidence:
 
 
 @dataclass
+class RetrievalBundle:
+    evidences: list[RetrievedEvidence]
+    retrieval_quality: str
+
+
+@dataclass
 class WebCitation:
     title: str
     url: str
@@ -64,12 +66,25 @@ class WebSearchResult:
 
 
 @dataclass
+class AnswerDraft:
+    answer: str
+    used_local_context: bool
+    used_web_search: bool
+    source_badge: str
+    web_result: WebSearchResult | None = None
+
+
+@dataclass
+class EvaluationDecision:
+    decision: str
+    reason: str
+
+
+@dataclass
 class QAResponse:
     answer: str
     references: list[dict]
-    route: str
-    route_reason: str
-    response_mode: str
     source_badge: str
-    local_task_type: str | None = None
-    local_task_reason: str | None = None
+    used_local_context: bool
+    used_web_search: bool
+    retried: bool

@@ -3,194 +3,177 @@ from __future__ import annotations
 import json
 from collections.abc import Iterator
 
-from app.agent.models import QueryAnalysis, RetrievedEvidence, RouterDecision, WebSearchResult
+from app.agent.models import AnswerDraft, RetrievedEvidence, WebSearchResult
 from app.core.llm import get_llm_clients
 
 
-LOCAL_QA_SYSTEM_PROMPT = """
-你是一个基于证据回答问题的中文助手。
+ANSWER_SYSTEM_PROMPT = """
+你是个人网站的中文问答助手。
 
-规则：
-1. 只使用提供的本地资料证据回答，不要编造。
-2. 如果证据不足，明确说明“当前本地资料中没有找到足够信息”。
-3. 事实类问题优先精确回答，概括类问题保持简洁。
-4. 比较类问题先分别概括，再给结论。
-5. 不要暴露隐藏推理过程。
-""".strip()
-
-
-HYBRID_QA_SYSTEM_PROMPT = """
-你是一个中文助手，需要同时参考本地资料与联网搜索结果回答。
-
-规则：
-1. 优先准确区分“基于本地资料”和“结合联网信息”的内容。
-2. 不要把网络信息伪装成本地资料。
-3. 回答要自然，不要写成机械报告。
-4. 如果任一来源不足，可以明确说明来源边界。
-5. 不要暴露隐藏推理过程。
+回答原则：
+1. 如果提供了本地资料证据，优先用这些证据回答与站长本人、项目、技能、经历、个人网站相关的问题。
+2. 如果本地资料不足，而问题需要外部最新信息，可以联网补充。
+3. 不要把外部信息伪装成本地资料。
+4. 回答自然，不要写成机械报告。
+5. 如果信息不足，明确说明边界。
 """.strip()
 
 
 class ResponseSynthesizer:
-    REFUSAL_PHRASES = [
-        "问题不明确",
-        "无法直接回答",
-        "请提供具体问题",
-        "请提供更具体的问题",
-        "需要更多信息",
-    ]
-
     def __init__(self):
         self.clients = get_llm_clients()
 
     def synthesize(
         self,
+        *,
         question: str,
-        decision: RouterDecision,
-        analysis: QueryAnalysis | None,
+        relevance: str,
         evidences: list[RetrievedEvidence],
-        web_result: WebSearchResult | None,
-    ) -> str:
-        if decision.route == "chat":
-            return self._build_chat_reply(question)
-        if decision.needs_clarification or decision.route == "out_of_scope":
-            return "可以具体一点告诉我你想问什么。我可以回答简历、项目经历、技能栈、个人网站，也可以在需要时联网补充最新信息。"
-        if decision.route == "web_search":
-            return (web_result.summary if web_result else "") or "联网搜索暂时没有返回有效结果。"
-        if decision.route == "local_rag":
-            if not evidences:
-                return "当前本地资料中没有找到足够信息。"
-            return self._synthesize_local(question, analysis, evidences)
-        if decision.route == "hybrid":
-            if not evidences and not (web_result and web_result.summary):
-                return "当前本地资料和联网搜索都没有提供足够信息。"
-            return self._synthesize_hybrid(question, analysis, evidences, web_result)
-        return "可以换个更具体的问题再试一次。"
+        retry: bool,
+        web_result: WebSearchResult | None = None,
+    ) -> AnswerDraft:
+        used_local_context = bool(evidences)
+        messages = self._build_messages(
+            question=question,
+            relevance=relevance,
+            evidences=evidences,
+            retry=retry,
+        )
+        response = self.clients.chat_model.invoke(messages)
+        answer = str(response.content or "").strip() or "当前没有足够信息。"
+
+        if not self._needs_web_search(question, answer, relevance, used_local_context):
+            return AnswerDraft(
+                answer=answer,
+                used_local_context=used_local_context,
+                used_web_search=False,
+                source_badge=self._build_source_badge(used_local_context, False),
+                web_result=None,
+            )
+
+        web_result = self._ensure_web_result(question, web_result)
+        if web_result and web_result.summary:
+            web_answer = self._merge_with_web_answer(
+                question=question,
+                base_answer=answer,
+                evidences=evidences,
+                web_result=web_result,
+            )
+            return AnswerDraft(
+                answer=web_answer,
+                used_local_context=used_local_context,
+                used_web_search=True,
+                source_badge=self._build_source_badge(used_local_context, True),
+                web_result=web_result,
+            )
+
+        return AnswerDraft(
+            answer=answer,
+            used_local_context=used_local_context,
+            used_web_search=False,
+            source_badge=self._build_source_badge(used_local_context, False),
+            web_result=web_result,
+        )
 
     def stream(
         self,
+        *,
         question: str,
-        decision: RouterDecision,
-        analysis: QueryAnalysis | None,
+        relevance: str,
         evidences: list[RetrievedEvidence],
-        web_result: WebSearchResult | None,
+        retry: bool,
+        web_result: WebSearchResult | None = None,
     ) -> Iterator[str]:
-        if decision.route in {"chat", "web_search", "out_of_scope"} or decision.needs_clarification:
-            yield self._encode_event(
-                "token",
-                {"content": self.synthesize(question, decision, analysis, evidences, web_result)},
-            )
-            return
-
-        if decision.route == "local_rag" and not evidences:
-            yield self._encode_event("token", {"content": "当前本地资料中没有找到足够信息。"})
-            return
-
-        if decision.route == "hybrid" and not evidences and not (web_result and web_result.summary):
-            yield self._encode_event("token", {"content": "当前本地资料和联网搜索都没有提供足够信息。"})
-            return
-
-        chunks: list[str] = []
-        messages = (
-            self._build_local_messages(question, analysis, evidences)
-            if decision.route == "local_rag"
-            else self._build_hybrid_messages(question, analysis, evidences, web_result)
+        draft = self.synthesize(
+            question=question,
+            relevance=relevance,
+            evidences=evidences,
+            retry=retry,
+            web_result=web_result,
         )
+        yield self._encode_event("token", {"content": draft.answer})
+        return
 
-        for chunk in self.clients.chat_model.stream(messages):
-            content = str(chunk.content or "")
-            if not content:
-                continue
-            chunks.append(content)
-            yield self._encode_event("token", {"content": content})
-
-        answer = "".join(chunks).strip()
-        if answer and not self._is_refusal(answer):
-            return
-
-        fallback = self.synthesize(question, decision, analysis, evidences, web_result)
-        if answer:
-            yield self._encode_event("replace", {"content": fallback})
-        else:
-            yield self._encode_event("token", {"content": fallback})
-
-    def _synthesize_local(
+    def _build_messages(
         self,
+        *,
         question: str,
-        analysis: QueryAnalysis | None,
+        relevance: str,
         evidences: list[RetrievedEvidence],
-    ) -> str:
-        response = self.clients.chat_model.invoke(self._build_local_messages(question, analysis, evidences))
-        answer = str(response.content).strip()
-        if not answer or self._is_refusal(answer):
-            return self._build_extractive_fallback(evidences, prefix="根据当前本地资料，相关信息如下：")
-        return answer
-
-    def _synthesize_hybrid(
-        self,
-        question: str,
-        analysis: QueryAnalysis | None,
-        evidences: list[RetrievedEvidence],
-        web_result: WebSearchResult | None,
-    ) -> str:
-        response = self.clients.chat_model.invoke(
-            self._build_hybrid_messages(question, analysis, evidences, web_result)
-        )
-        answer = str(response.content).strip()
-        if not answer or self._is_refusal(answer):
-            sections: list[str] = []
-            if evidences:
-                sections.append(self._build_extractive_fallback(evidences, prefix="基于本地资料："))
-            if web_result and web_result.summary:
-                sections.append(f"结合联网信息：{web_result.summary}")
-            return "\n\n".join(section for section in sections if section) or "当前没有足够信息。"
-        return answer
-
-    def _build_local_messages(
-        self,
-        question: str,
-        analysis: QueryAnalysis | None,
-        evidences: list[RetrievedEvidence],
+        retry: bool,
     ) -> list[dict[str, str]]:
         return [
-            {"role": "system", "content": LOCAL_QA_SYSTEM_PROMPT},
+            {"role": "system", "content": ANSWER_SYSTEM_PROMPT},
             {
                 "role": "user",
                 "content": (
                     f"用户问题：{question}\n\n"
-                    f"本地任务类型：{analysis.task_type if analysis else 'unknown'}\n"
-                    f"知识范围：{analysis.source_scope if analysis else 'unknown'}\n\n"
-                    "请严格依据下面证据回答：\n\n"
-                    f"{self._format_evidence(evidences)}"
+                    f"本地相关度：{relevance}\n"
+                    f"是否为重试回答：{'yes' if retry else 'no'}\n\n"
+                    "本地资料证据：\n"
+                    f"{self._format_evidence(evidences) if evidences else '无'}"
                 ),
             },
         ]
 
-    def _build_hybrid_messages(
+    def _merge_with_web_answer(
         self,
+        *,
         question: str,
-        analysis: QueryAnalysis | None,
+        base_answer: str,
         evidences: list[RetrievedEvidence],
-        web_result: WebSearchResult | None,
-    ) -> list[dict[str, str]]:
-        web_summary = web_result.summary if web_result else "无"
-        web_sources = self._format_citations(web_result.citations if web_result else [])
-        return [
-            {"role": "system", "content": HYBRID_QA_SYSTEM_PROMPT},
+        web_result: WebSearchResult,
+    ) -> str:
+        prompt = [
+            {"role": "system", "content": ANSWER_SYSTEM_PROMPT},
             {
                 "role": "user",
                 "content": (
                     f"用户问题：{question}\n\n"
-                    f"本地任务类型：{analysis.task_type if analysis else 'unknown'}\n\n"
+                    f"第一版回答：{base_answer}\n\n"
                     "本地资料证据：\n"
                     f"{self._format_evidence(evidences) if evidences else '无'}\n\n"
-                    "联网搜索摘要：\n"
-                    f"{web_summary}\n\n"
-                    "联网来源：\n"
-                    f"{web_sources}"
+                    f"联网补充信息：{web_result.summary}\n\n"
+                    "请把本地资料和联网信息自然整合成最终回答，明确来源边界。"
                 ),
             },
         ]
+        response = self.clients.chat_model.invoke(prompt)
+        return str(response.content or "").strip() or base_answer
+
+    def _needs_web_search(
+        self,
+        question: str,
+        answer: str,
+        relevance: str,
+        used_local_context: bool,
+    ) -> bool:
+        normalized_question = question.lower()
+        web_hints = ("最新", "最近", "今天", "当前", "主流", "官网", "趋势", "现状", "news", "latest")
+        if any(hint in normalized_question for hint in web_hints):
+            return True
+        if relevance == "low":
+            return True
+        if not used_local_context and len(answer) < 28:
+            return True
+        return False
+
+    def _ensure_web_result(self, question: str, web_result: WebSearchResult | None) -> WebSearchResult | None:
+        if web_result is not None:
+            return web_result
+
+        from app.agent.web_search import WebSearchService
+
+        return WebSearchService().search(question)
+
+    def _build_source_badge(self, used_local_context: bool, used_web_search: bool) -> str:
+        if used_local_context and used_web_search:
+            return "结合本地资料与联网信息"
+        if used_local_context:
+            return "结合本地资料"
+        if used_web_search:
+            return "结合联网信息"
+        return "通用回答"
 
     def _format_evidence(self, evidences: list[RetrievedEvidence]) -> str:
         sections: list[str] = []
@@ -201,31 +184,6 @@ class ResponseSynthesizer:
             )
             sections.append(f"{header}\n{evidence.content}")
         return "\n\n".join(sections)
-
-    def _format_citations(self, citations) -> str:
-        if not citations:
-            return "无"
-        return "\n".join(f"- {item.title}: {item.url}" for item in citations)
-
-    def _is_refusal(self, answer: str) -> bool:
-        return any(phrase in answer for phrase in self.REFUSAL_PHRASES)
-
-    def _build_extractive_fallback(self, evidences: list[RetrievedEvidence], *, prefix: str) -> str:
-        lines: list[str] = []
-        for evidence in evidences[:4]:
-            snippet = " ".join(evidence.content.split())[:220]
-            lines.append(f"- [{evidence.doc_type}] {evidence.source_file}: {snippet}")
-        if not lines:
-            return "当前没有足够信息。"
-        return prefix + "\n" + "\n".join(lines)
-
-    def _build_chat_reply(self, question: str) -> str:
-        lowered = question.strip().lower()
-        if any(token in lowered for token in ("谢谢", "感谢", "thanks", "thank you")):
-            return "不客气。你可以继续问我简历、项目经历、技能栈、个人网站，或者让我联网查最新信息。"
-        if any(token in lowered for token in ("再见", "bye")):
-            return "好的，有需要随时再来。"
-        return "你好，我可以回答简历、项目经历、技能栈、个人网站，也可以在需要时联网补充最新信息。"
 
     def _encode_event(self, event_type: str, payload: dict) -> str:
         body = {"type": event_type, **payload}

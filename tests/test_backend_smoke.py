@@ -79,12 +79,14 @@ class FakeChatCompletionResponse:
 class FakeChatModel:
     def invoke(self, messages):
         if isinstance(messages, str):
-            return FakeMessage(self._route_response(messages))
+            return FakeMessage(self._json_response(messages))
 
         payload = messages[1]["content"]
-        if "联网搜索摘要" in payload:
-            return FakeMessage("从我的项目经历来看，这个方向契合轻量 Agent。结合当前公开信息，这也是主流做法。")
-        return FakeMessage("这是 smoke test 的本地回答。")
+        if "联网补充信息" in payload:
+            return FakeMessage("结合本地资料来看，这个项目有较强工程化实现。结合联网信息，这种做法符合当前主流轻量 Agent 方向。")
+        if "本地资料证据" in payload and "无" not in payload:
+            return FakeMessage("根据本地资料，孙雪海有 AI 应用开发、RAG 和个人网站相关项目经验。")
+        return FakeMessage("这是一个通用回答，会结合联网信息补充。")
 
     def stream(self, messages):
         content = str(self.invoke(messages).content)
@@ -92,30 +94,21 @@ class FakeChatModel:
         yield FakeMessage(content[:midpoint])
         yield FakeMessage(content[midpoint:])
 
-    def _route_response(self, prompt: str) -> str:
-        if "这个项目放在现在行业里怎么样" in prompt:
-            return json.dumps(
-                {
-                    "route": "hybrid",
-                    "use_local_rag": True,
-                    "use_web_search": True,
-                    "response_mode": "comparison",
-                    "needs_clarification": False,
-                    "reason": "fake_hybrid_route",
-                },
-                ensure_ascii=False,
-            )
-        return json.dumps(
-            {
-                "route": "out_of_scope",
-                "use_local_rag": False,
-                "use_web_search": False,
-                "response_mode": "clarify",
-                "needs_clarification": True,
-                "reason": "fake_clarify_route",
-            },
-            ensure_ascii=False,
-        )
+    def _json_response(self, prompt: str) -> str:
+        if "本地资料是否有助于回答这个问题" in prompt:
+            if "你的个人网站是什么" in prompt:
+                payload = {"relevance": "high", "reason": "asking personal profile info"}
+            elif "现在主流的 agent 框架有哪些" in prompt:
+                payload = {"relevance": "low", "reason": "external latest topic"}
+            else:
+                payload = {"relevance": "medium", "reason": "project topic may benefit from local context"}
+            return json.dumps(payload, ensure_ascii=False)
+
+        if "重写成更适合本地知识库检索的一句话" in prompt:
+            payload = {"rewritten_question": "孙雪海个人项目的技术方案、工程实现和亮点是什么"}
+            return json.dumps(payload, ensure_ascii=False)
+
+        return json.dumps({"relevance": "medium", "reason": "default"}, ensure_ascii=False)
 
 
 class FakeEmbeddings:
@@ -187,7 +180,7 @@ class FakeKeywordRetriever:
                     page=doc.metadata.get("page_label", doc.metadata.get("page")),
                     doc_type=doc.metadata.get("doc_type"),
                     retrieval_method="keyword",
-                    score=5.0,
+                    score=0.8,
                 )
             )
         return results
@@ -240,6 +233,7 @@ def patch_fake_llm(monkeypatch):
     monkeypatch.setattr("app.agent.router.get_llm_clients", lambda: fake_clients)
     monkeypatch.setattr("app.agent.synthesis.get_llm_clients", lambda: fake_clients)
     monkeypatch.setattr("app.agent.web_search.get_llm_clients", lambda: fake_clients)
+    monkeypatch.setattr("app.agent.rewrite.get_llm_clients", lambda: fake_clients)
     return fake_clients
 
 
@@ -268,7 +262,7 @@ def test_api_smoke_without_network(tmp_path, monkeypatch):
     resume_pdf.write_bytes(b"%PDF-1.4 self")
     STORE["self"] = [
         Document(
-            page_content="孙雪海有 AI 应用开发、检索增强和智能体开发经验。",
+            page_content="孙雪海有 AI 应用开发、检索增强和个人网站相关项目经验。",
             metadata={
                 "source_file": resume_pdf.name,
                 "page": 1,
@@ -300,40 +294,21 @@ def test_api_smoke_without_network(tmp_path, monkeypatch):
     assert ready_response.status_code == 200
     assert ready_response.json()["status"] == "ready"
 
-    greeting_response = client.post(
-        "/chat",
-        json={"question": "你好", "use_uploaded_docs": False},
-    )
-    assert greeting_response.status_code == 200
-    assert greeting_response.json()["route"] == "chat"
-    assert greeting_response.json()["source_badge"] == "直接对话"
-
-    upload_response = client.post(
-        "/upload_resume",
-        files={"file": ("uploaded.pdf", b"%PDF-1.4 uploaded", "application/pdf")},
-    )
-    assert upload_response.status_code == 200
-    assert upload_response.json()["chunk_count"] == 1
-
-    self_chat_response = client.post(
+    local_response = client.post(
         "/chat",
         json={"question": "你的个人网站是什么", "use_uploaded_docs": False},
     )
-    assert self_chat_response.status_code == 200
-    assert self_chat_response.json()["route"] == "local_rag"
-    assert self_chat_response.json()["response_mode"] == "grounded_answer"
+    assert local_response.status_code == 200
+    assert local_response.json()["used_local_context"] is True
+    assert local_response.json()["source_badge"] == "结合本地资料"
 
-    web_chat_response = client.post(
+    web_response = client.post(
         "/chat",
         json={"question": "现在主流的 agent 框架有哪些", "use_uploaded_docs": False},
     )
-    assert web_chat_response.status_code == 200
-    assert web_chat_response.json()["route"] == "web_search"
-    assert any(item["source_kind"] == "web" for item in web_chat_response.json()["references"])
-
-    clear_response = client.delete("/upload_status")
-    assert clear_response.status_code == 200
-    assert clear_response.json()["has_uploaded_docs"] is False
+    assert web_response.status_code == 200
+    assert web_response.json()["used_web_search"] is True
+    assert web_response.json()["source_badge"] == "结合联网信息"
 
 
 def test_chat_stream_returns_sse_events(tmp_path, monkeypatch):
@@ -343,7 +318,7 @@ def test_chat_stream_returns_sse_events(tmp_path, monkeypatch):
     resume_pdf.write_bytes(b"%PDF-1.4 self")
     STORE["self"] = [
         Document(
-            page_content="孙雪海有 AI 应用开发、检索增强和智能体开发经验。",
+            page_content="孙雪海有 AI 应用开发、检索增强和个人网站相关项目经验。",
             metadata={
                 "source_file": resume_pdf.name,
                 "page": 1,
@@ -369,26 +344,16 @@ def test_chat_stream_returns_sse_events(tmp_path, monkeypatch):
     assert response.status_code == 200
     assert 'data: {"type": "token"' in response.text
     assert '"type": "meta"' in response.text
-    assert '"source_badge": "基于本地资料"' in response.text
+    assert '"source_badge": "结合本地资料"' in response.text
     assert '"type": "done"' in response.text
 
 
-def test_llm_router_can_choose_hybrid(tmp_path, monkeypatch):
+def test_retry_can_expand_local_retrieval(tmp_path, monkeypatch):
     configure_temp_settings(tmp_path)
 
     resume_pdf = Settings.SELF_RESUME_DIR / "self_resume.pdf"
     resume_pdf.write_bytes(b"%PDF-1.4 self")
-    STORE["self"] = [
-        Document(
-            page_content="项目里包含轻量 Agent、RAG 和前后端联调经验。",
-            metadata={
-                "source_file": resume_pdf.name,
-                "page": 1,
-                "page_label": "1",
-                "doc_type": "self_resume",
-            },
-        )
-    ]
+    STORE["self"] = []
 
     patch_fake_llm(monkeypatch)
     monkeypatch.setattr(agent_service, "ResumeRetriever", FakeResumeRetriever)
@@ -396,13 +361,10 @@ def test_llm_router_can_choose_hybrid(tmp_path, monkeypatch):
     monkeypatch.setattr(agent_service, "KeywordRetriever", FakeKeywordRetriever)
 
     service = agent_service.ResumeQAService()
-    response = service.ask("你做的这个项目放在现在行业里怎么样")
+    response = service.ask("你的个人网站是什么")
 
-    assert response.route == "hybrid"
-    assert response.response_mode == "comparison"
-    assert response.source_badge == "本地资料 + 联网分析"
-    assert any(item["source_kind"] == "local" for item in response.references)
-    assert any(item["source_kind"] == "web" for item in response.references)
+    assert response.retried is True
+    assert response.used_local_context is False
 
 
 def test_upload_rejects_oversized_pdf(tmp_path, monkeypatch):

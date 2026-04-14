@@ -33,12 +33,10 @@ class ChatRequest(BaseModel):
 class ChatResponse(BaseModel):
     answer: str
     references: list[dict]
-    route: str
-    route_reason: str
-    response_mode: str
     source_badge: str
-    local_task_type: str | None = None
-    local_task_reason: str | None = None
+    used_local_context: bool
+    used_web_search: bool
+    retried: bool
 
 
 class UploadResponse(BaseModel):
@@ -150,12 +148,10 @@ def chat(payload: ChatRequest) -> ChatResponse:
     return ChatResponse(
         answer=response.answer,
         references=response.references,
-        route=response.route,
-        route_reason=response.route_reason,
-        response_mode=response.response_mode,
         source_badge=response.source_badge,
-        local_task_type=response.local_task_type,
-        local_task_reason=response.local_task_reason,
+        used_local_context=response.used_local_context,
+        used_web_search=response.used_web_search,
+        retried=response.retried,
     )
 
 
