@@ -1,12 +1,14 @@
 from __future__ import annotations
 
+import json
 from pathlib import Path
 
 from fastapi.testclient import TestClient
 from langchain_core.documents import Document
 
-from app.api import routes as api_routes
 from app.agent import service as agent_service
+from app.agent.router import QueryRouter
+from app.api import routes as api_routes
 from app.core.config import Settings
 from app.main import create_app
 from app.uploads.service import UploadKnowledgeBaseService
@@ -24,14 +26,78 @@ class FakeMessage:
         self.content = content
 
 
+class FakeAnnotation:
+    def __init__(self, title: str, url: str):
+        self.title = title
+        self.url = url
+
+
+class FakeOutputText:
+    def __init__(self, annotations):
+        self.type = "output_text"
+        self.annotations = annotations
+
+
+class FakeOutputMessage:
+    def __init__(self, content):
+        self.type = "message"
+        self.content = content
+
+
+class FakeWebResponse:
+    def __init__(self, summary: str):
+        self.output_text = summary
+        self.output = [
+            FakeOutputMessage(
+                [
+                    FakeOutputText(
+                        [FakeAnnotation("OpenAI", "https://openai.com/index/new-tools-for-building-agents/")]
+                    )
+                ]
+            )
+        ]
+
+
 class FakeChatModel:
     def invoke(self, messages):
-        return FakeMessage("这是 smoke test 的 mock 回答。")
+        if isinstance(messages, str):
+            return FakeMessage(self._route_response(messages))
+
+        payload = messages[1]["content"]
+        if "联网搜索摘要" in payload:
+            return FakeMessage("从我的项目经历来看，这个方向契合轻量 Agent。结合当前公开信息，这也是主流做法。")
+        return FakeMessage("这是 smoke test 的本地回答。")
 
     def stream(self, messages):
-        yield FakeMessage("这是")
-        yield FakeMessage(" smoke test")
-        yield FakeMessage(" 的 mock 回答。")
+        content = str(self.invoke(messages).content)
+        midpoint = max(1, len(content) // 2)
+        yield FakeMessage(content[:midpoint])
+        yield FakeMessage(content[midpoint:])
+
+    def _route_response(self, prompt: str) -> str:
+        if "这个项目放在现在行业里怎么样" in prompt:
+            return json.dumps(
+                {
+                    "route": "hybrid",
+                    "use_local_rag": True,
+                    "use_web_search": True,
+                    "response_mode": "comparison",
+                    "needs_clarification": False,
+                    "reason": "fake_hybrid_route",
+                },
+                ensure_ascii=False,
+            )
+        return json.dumps(
+            {
+                "route": "out_of_scope",
+                "use_local_rag": False,
+                "use_web_search": False,
+                "response_mode": "clarify",
+                "needs_clarification": True,
+                "reason": "fake_clarify_route",
+            },
+            ensure_ascii=False,
+        )
 
 
 class FakeEmbeddings:
@@ -42,10 +108,20 @@ class FakeEmbeddings:
         return [0.0, 0.0, 0.0]
 
 
+class FakeResponseClient:
+    def __init__(self):
+        self.responses = self
+
+    def create(self, model, tools, input):
+        del model, tools, input
+        return FakeWebResponse("联网搜索显示，当前主流 Agent 通常采用路由加工具调用的轻量编排。")
+
+
 class FakeClients:
     def __init__(self):
         self.chat_model = FakeChatModel()
         self.embedding_model = FakeEmbeddings()
+        self.response_client = FakeResponseClient()
 
 
 class FakeResumeRetriever:
@@ -76,6 +152,7 @@ class FakeKeywordRetriever:
         self.doc_type = doc_type
 
     def search(self, question: str, query_terms: list[str], top_k: int = 4):
+        del question, query_terms
         key = "upload" if self.doc_type == "uploaded_docs" else "self"
         docs = STORE[key][:top_k]
         results = []
@@ -101,7 +178,7 @@ class FakePipeline:
     def ingest(self, file_name: str) -> dict:
         STORE["upload"] = [
             Document(
-                page_content="这是一份上传文档的测试内容，包含项目说明和候选人信息。",
+                page_content="这是上传文档的测试内容，包含项目说明和候选人信息。",
                 metadata={
                     "source_file": file_name,
                     "page": 1,
@@ -133,6 +210,14 @@ def configure_temp_settings(tmp_path: Path) -> None:
     Settings.SELF_RESUME_CHROMA_DIR = Settings.CHROMA_DIR / "self_resume"
     Settings.UPLOAD_CHROMA_DIR = Settings.CHROMA_DIR / "uploaded_docs"
     Settings.ensure_directories()
+
+
+def patch_fake_llm(monkeypatch):
+    fake_clients = FakeClients()
+    monkeypatch.setattr("app.agent.router.get_llm_clients", lambda: fake_clients)
+    monkeypatch.setattr("app.agent.synthesis.get_llm_clients", lambda: fake_clients)
+    monkeypatch.setattr("app.agent.web_search.get_llm_clients", lambda: fake_clients)
+    return fake_clients
 
 
 def test_upload_reset_keeps_chroma_files_but_clears_upload_state(tmp_path, monkeypatch):
@@ -171,7 +256,7 @@ def test_api_smoke_without_network(tmp_path, monkeypatch):
     ]
     STORE["upload"] = []
 
-    fake_clients = FakeClients()
+    patch_fake_llm(monkeypatch)
     Settings.DASHSCOPE_API_KEY = "test-key"
     Settings.MAX_UPLOAD_SIZE_MB = 1
 
@@ -180,7 +265,6 @@ def test_api_smoke_without_network(tmp_path, monkeypatch):
     monkeypatch.setattr(agent_service, "ResumeRetriever", FakeResumeRetriever)
     monkeypatch.setattr(agent_service, "UploadedDocumentRetriever", FakeUploadedRetriever)
     monkeypatch.setattr(agent_service, "KeywordRetriever", FakeKeywordRetriever)
-    monkeypatch.setattr("app.agent.synthesis.get_llm_clients", lambda: fake_clients)
     monkeypatch.setattr("app.uploads.service.chromadb.PersistentClient", FakePersistentClient)
 
     client = TestClient(create_app())
@@ -193,9 +277,13 @@ def test_api_smoke_without_network(tmp_path, monkeypatch):
     assert ready_response.status_code == 200
     assert ready_response.json()["status"] == "ready"
 
-    upload_status_before = client.get("/upload_status")
-    assert upload_status_before.status_code == 200
-    assert upload_status_before.json()["has_uploaded_docs"] is False
+    greeting_response = client.post(
+        "/chat",
+        json={"question": "你好", "use_uploaded_docs": False},
+    )
+    assert greeting_response.status_code == 200
+    assert greeting_response.json()["route"] == "chat"
+    assert greeting_response.json()["source_badge"] == "直接对话"
 
     upload_response = client.post(
         "/upload_resume",
@@ -206,19 +294,19 @@ def test_api_smoke_without_network(tmp_path, monkeypatch):
 
     self_chat_response = client.post(
         "/chat",
-        json={"question": "请介绍孙雪海的工作经历", "use_uploaded_docs": False},
+        json={"question": "你的个人网站是什么", "use_uploaded_docs": False},
     )
     assert self_chat_response.status_code == 200
-    assert self_chat_response.json()["route_target"] == "self_resume"
-    assert self_chat_response.json()["question_type"] == "summary"
+    assert self_chat_response.json()["route"] == "local_rag"
+    assert self_chat_response.json()["response_mode"] == "grounded_answer"
 
-    upload_chat_response = client.post(
+    web_chat_response = client.post(
         "/chat",
-        json={"question": "这份上传的pdf讲了什么", "use_uploaded_docs": True},
+        json={"question": "现在主流的 agent 框架有哪些", "use_uploaded_docs": False},
     )
-    assert upload_chat_response.status_code == 200
-    assert upload_chat_response.json()["route_target"] == "uploaded_docs"
-    assert upload_chat_response.json()["references"]
+    assert web_chat_response.status_code == 200
+    assert web_chat_response.json()["route"] == "web_search"
+    assert any(item["source_kind"] == "web" for item in web_chat_response.json()["references"])
 
     clear_response = client.delete("/upload_status")
     assert clear_response.status_code == 200
@@ -242,24 +330,56 @@ def test_chat_stream_returns_sse_events(tmp_path, monkeypatch):
         )
     ]
 
-    fake_clients = FakeClients()
+    patch_fake_llm(monkeypatch)
     Settings.DASHSCOPE_API_KEY = "test-key"
 
     monkeypatch.setattr(agent_service, "ResumeRetriever", FakeResumeRetriever)
     monkeypatch.setattr(agent_service, "UploadedDocumentRetriever", FakeUploadedRetriever)
     monkeypatch.setattr(agent_service, "KeywordRetriever", FakeKeywordRetriever)
-    monkeypatch.setattr("app.agent.synthesis.get_llm_clients", lambda: fake_clients)
 
     client = TestClient(create_app())
     response = client.post(
         "/chat_stream",
-        json={"question": "请介绍一下你自己", "use_uploaded_docs": False},
+        json={"question": "你的个人网站是什么", "use_uploaded_docs": False},
     )
 
     assert response.status_code == 200
     assert 'data: {"type": "token"' in response.text
     assert '"type": "meta"' in response.text
+    assert '"source_badge": "基于本地资料"' in response.text
     assert '"type": "done"' in response.text
+
+
+def test_llm_router_can_choose_hybrid(tmp_path, monkeypatch):
+    configure_temp_settings(tmp_path)
+
+    resume_pdf = Settings.SELF_RESUME_DIR / "self_resume.pdf"
+    resume_pdf.write_bytes(b"%PDF-1.4 self")
+    STORE["self"] = [
+        Document(
+            page_content="项目里包含轻量 Agent、RAG 和前后端联调经验。",
+            metadata={
+                "source_file": resume_pdf.name,
+                "page": 1,
+                "page_label": "1",
+                "doc_type": "self_resume",
+            },
+        )
+    ]
+
+    patch_fake_llm(monkeypatch)
+    monkeypatch.setattr(agent_service, "ResumeRetriever", FakeResumeRetriever)
+    monkeypatch.setattr(agent_service, "UploadedDocumentRetriever", FakeUploadedRetriever)
+    monkeypatch.setattr(agent_service, "KeywordRetriever", FakeKeywordRetriever)
+
+    service = agent_service.ResumeQAService()
+    response = service.ask("你做的这个项目放在现在行业里怎么样")
+
+    assert response.route == "hybrid"
+    assert response.response_mode == "comparison"
+    assert response.source_badge == "本地资料 + 联网分析"
+    assert any(item["source_kind"] == "local" for item in response.references)
+    assert any(item["source_kind"] == "web" for item in response.references)
 
 
 def test_upload_rejects_oversized_pdf(tmp_path, monkeypatch):

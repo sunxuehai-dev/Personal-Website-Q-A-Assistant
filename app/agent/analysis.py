@@ -93,13 +93,13 @@ class QueryAnalyzer:
     QUESTION_FILLERS = [
         "请问",
         "请",
-        "一下",
+        "一个",
         "有吗",
         "有没有",
         "是否",
         "呢",
+        "啊",
         "呀",
-        "吗",
         "是什么",
         "多少",
         "哪个",
@@ -157,9 +157,9 @@ class QueryAnalyzer:
         if not use_uploaded_docs or not has_uploaded_docs:
             return self.SELF_SCOPE, "session_self_only"
 
-        self_hit = any(hint in question or hint in normalized_question for hint in self.SELF_HINTS)
-        upload_hit = any(hint in question or hint in normalized_question for hint in self.UPLOAD_HINTS)
-        compare_hit = any(hint in question or hint in normalized_question for hint in self.COMPARE_HINTS)
+        self_hit = any(hint in question.lower() or hint in normalized_question for hint in self.SELF_HINTS)
+        upload_hit = any(hint in question.lower() or hint in normalized_question for hint in self.UPLOAD_HINTS)
+        compare_hit = any(hint in question.lower() or hint in normalized_question for hint in self.COMPARE_HINTS)
 
         if compare_hit or (self_hit and upload_hit):
             return self.BOTH_SCOPE, "analysis_compare_scope"
@@ -170,13 +170,13 @@ class QueryAnalyzer:
         return self.SELF_SCOPE, "analysis_default_self"
 
     def _determine_task_type(self, question: str, normalized_question: str) -> tuple[str, str]:
-        if any(hint in question or hint in normalized_question for hint in self.COMPARE_HINTS):
+        if any(hint in question.lower() or hint in normalized_question for hint in self.COMPARE_HINTS):
             return "compare", "analysis_compare"
-        if any(hint in question or hint in normalized_question for hint in self.LOCATE_HINTS):
+        if any(hint in question.lower() or hint in normalized_question for hint in self.LOCATE_HINTS):
             return "locate", "analysis_locate"
-        if any(hint in question or hint in normalized_question for hint in self.FACT_HINTS):
+        if any(hint in question.lower() or hint in normalized_question for hint in self.FACT_HINTS):
             return "fact", "analysis_fact"
-        if any(hint in question or hint in normalized_question for hint in self.SUMMARY_HINTS):
+        if any(hint in question.lower() or hint in normalized_question for hint in self.SUMMARY_HINTS):
             return "summary", "analysis_summary"
         return "summary", "analysis_default_summary"
 

@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 from langchain_openai import ChatOpenAI, OpenAIEmbeddings
+from openai import OpenAI
 
 from app.core.config import Settings
 
@@ -15,6 +16,7 @@ class LLMConfigurationError(RuntimeError):
 class LLMClients:
     chat_model: ChatOpenAI
     embedding_model: OpenAIEmbeddings
+    response_client: OpenAI
 
 
 def _resolve_provider_settings() -> tuple[str, str, str]:
@@ -42,7 +44,7 @@ def _resolve_provider_settings() -> tuple[str, str, str]:
 
 
 def get_llm_clients() -> LLMClients:
-    """Create chat and embedding clients for the configured provider."""
+    """Create chat, embedding, and responses clients for the configured provider."""
     base_url, api_key, provider = _resolve_provider_settings()
 
     chat_model = ChatOpenAI(
@@ -62,7 +64,15 @@ def get_llm_clients() -> LLMClients:
         check_embedding_ctx_length=False,
     )
 
+    response_client = OpenAI(
+        base_url=base_url,
+        api_key=api_key,
+        timeout=Settings.LLM_TIMEOUT_SECONDS,
+        max_retries=Settings.LLM_MAX_RETRIES,
+    )
+
     return LLMClients(
         chat_model=chat_model,
         embedding_model=embedding_model,
+        response_client=response_client,
     )

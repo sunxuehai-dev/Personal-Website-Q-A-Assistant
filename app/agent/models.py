@@ -1,6 +1,16 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+
+
+@dataclass
+class RouterDecision:
+    route: str
+    use_local_rag: bool
+    use_web_search: bool
+    response_mode: str
+    needs_clarification: bool
+    reason: str
 
 
 @dataclass
@@ -42,10 +52,24 @@ class RetrievedEvidence:
 
 
 @dataclass
+class WebCitation:
+    title: str
+    url: str
+
+
+@dataclass
+class WebSearchResult:
+    summary: str
+    citations: list[WebCitation] = field(default_factory=list)
+
+
+@dataclass
 class QAResponse:
     answer: str
     references: list[dict]
-    route_target: str
+    route: str
     route_reason: str
-    question_type: str
-    question_type_reason: str
+    response_mode: str
+    source_badge: str
+    local_task_type: str | None = None
+    local_task_reason: str | None = None

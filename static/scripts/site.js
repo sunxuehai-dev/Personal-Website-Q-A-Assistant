@@ -18,11 +18,8 @@ function appendMessage(role, content) {
     return wrapper;
 }
 
-function routeLabel(routeTarget) {
-    if (routeTarget === "self_resume") return "来自个人简历知识库";
-    if (routeTarget === "uploaded_docs") return "来自上传文档知识库";
-    if (routeTarget === "both") return "来自双知识库";
-    return "已完成回答";
+function sourceBadgeLabel(sourceBadge) {
+    return sourceBadge || "已完成回答";
 }
 
 function sleep(ms) {
@@ -188,9 +185,9 @@ async function streamQuestion(question, targetNode) {
     }
 
     await typewriter.waitForIdle();
-    if (finalMeta?.route_target) {
-        typewriter.setFinalText(`${typewriter.getText()}\n\n${routeLabel(finalMeta.route_target)}`);
-        knowledgeStatus.textContent = routeLabel(finalMeta.route_target);
+    if (finalMeta?.source_badge) {
+        typewriter.setFinalText(`${typewriter.getText()}\n\n${sourceBadgeLabel(finalMeta.source_badge)}`);
+        knowledgeStatus.textContent = sourceBadgeLabel(finalMeta.source_badge);
     } else {
         knowledgeStatus.textContent = "已完成回答";
     }
@@ -214,7 +211,7 @@ clearUploadButton?.addEventListener("click", async () => {
     try {
         const payload = await clearUploadedDocs();
         renderUploadStatus(payload);
-        appendMessage("assistant", "已清空上传知识库，已恢复为个人简历问答模式。");
+        appendMessage("assistant", "已清空上传知识库，当前恢复为个人简历问答模式。");
     } catch (error) {
         appendMessage("assistant", `清空失败：${error.message}`);
     }
@@ -235,8 +232,8 @@ chatForm?.addEventListener("submit", async (event) => {
     } catch (error) {
         try {
             const payload = await askQuestion(question);
-            assistantNode.textContent = `${payload.answer}\n\n${routeLabel(payload.route_target)}`;
-            knowledgeStatus.textContent = routeLabel(payload.route_target);
+            assistantNode.textContent = `${payload.answer}\n\n${sourceBadgeLabel(payload.source_badge)}`;
+            knowledgeStatus.textContent = sourceBadgeLabel(payload.source_badge);
         } catch (fallbackError) {
             knowledgeStatus.textContent = "请求失败";
             assistantNode.textContent = `请求失败：${fallbackError.message}`;
