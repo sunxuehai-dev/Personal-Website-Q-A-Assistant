@@ -25,6 +25,57 @@ function routeLabel(routeTarget) {
     return "已完成回答";
 }
 
+function sleep(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function createTypewriter(targetNode) {
+    let queue = [];
+    let answerText = "";
+    let isFlushing = false;
+
+    async function flush() {
+        if (isFlushing) return;
+        isFlushing = true;
+
+        while (queue.length > 0) {
+            answerText += queue.shift();
+            targetNode.textContent = answerText;
+            chatLog.scrollTop = chatLog.scrollHeight;
+            await sleep(16);
+        }
+
+        isFlushing = false;
+    }
+
+    return {
+        push(text) {
+            queue.push(...Array.from(text || ""));
+            flush();
+        },
+        replace(text) {
+            queue = [];
+            answerText = "";
+            targetNode.textContent = "";
+            this.push(text || "");
+        },
+        async waitForIdle() {
+            while (queue.length > 0 || isFlushing) {
+                await sleep(20);
+            }
+        },
+        getText() {
+            return answerText;
+        },
+        setFinalText(text) {
+            queue = [];
+            answerText = text;
+            targetNode.textContent = text;
+            chatLog.scrollTop = chatLog.scrollHeight;
+        }
+    };
+}
+
 async function uploadDocument(file) {
     const formData = new FormData();
     formData.append("file", file);
@@ -111,7 +162,7 @@ async function streamQuestion(question, targetNode) {
     const decoder = new TextDecoder("utf-8");
     let buffer = "";
     let finalMeta = null;
-    let answerText = "";
+    const typewriter = createTypewriter(targetNode);
 
     while (true) {
         const { value, done } = await reader.read();
@@ -127,21 +178,18 @@ async function streamQuestion(question, targetNode) {
 
             const payload = JSON.parse(line.slice(5).trim());
             if (payload.type === "token") {
-                answerText += payload.content || "";
-                targetNode.textContent = answerText;
-                chatLog.scrollTop = chatLog.scrollHeight;
+                typewriter.push(payload.content || "");
             } else if (payload.type === "replace") {
-                answerText = payload.content || "";
-                targetNode.textContent = answerText;
-                chatLog.scrollTop = chatLog.scrollHeight;
+                typewriter.replace(payload.content || "");
             } else if (payload.type === "meta") {
                 finalMeta = payload;
             }
         }
     }
 
+    await typewriter.waitForIdle();
     if (finalMeta?.route_target) {
-        targetNode.textContent = `${answerText}\n\n${routeLabel(finalMeta.route_target)}`;
+        typewriter.setFinalText(`${typewriter.getText()}\n\n${routeLabel(finalMeta.route_target)}`);
         knowledgeStatus.textContent = routeLabel(finalMeta.route_target);
     } else {
         knowledgeStatus.textContent = "已完成回答";
