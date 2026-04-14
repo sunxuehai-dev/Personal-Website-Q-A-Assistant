@@ -10,123 +10,134 @@
     <link rel="stylesheet" href="{{ url_for('static', path='/styles/site.css') }}">
 </head>
 <body>
-    <div class="layout-shell">
-        <aside class="side-rail">
-            <div class="rail-card rail-brand">
-                <p class="rail-kicker">Portfolio</p>
-                <h1>{{ profile.name }}</h1>
-                <p class="rail-title">{{ profile.title }}</p>
-                <p class="rail-text">{{ profile.tagline }}</p>
-            </div>
-
-            <div class="rail-card rail-profile">
-                <img
-                    class="rail-avatar"
-                    src="{{ url_for('static', path='/images/profile.jpg') }}"
-                    alt="{{ profile.name }}"
-                >
-                <ul class="rail-meta">
-                    <li><span>城市</span><strong>{{ profile.location }}</strong></li>
-                    <li><span>邮箱</span><strong>{{ profile.email }}</strong></li>
-                    <li><span>电话</span><strong>{{ profile.phone }}</strong></li>
-                </ul>
-            </div>
-
-            <nav class="rail-card rail-nav">
-                <a href="#about">关于我</a>
+    <div class="console-shell">
+        <header class="topbar">
+            <a class="brand" href="#overview">
+                <span class="brand-mark">SX</span>
+                <span class="brand-copy">
+                    <strong>{{ profile.name }}</strong>
+                    <small>{{ profile.title }}</small>
+                </span>
+            </a>
+            <nav class="nav">
+                <a href="#overview">概览</a>
                 <a href="#experience">经历</a>
                 <a href="#projects">项目</a>
                 <a href="#skills">技能</a>
                 <a href="#assistant">问答助手</a>
             </nav>
+        </header>
 
-            <div class="rail-card rail-tags">
-                <span>RAG</span>
-                <span>Agent</span>
-                <span>FastAPI</span>
-                <span>Streaming UX</span>
-            </div>
-        </aside>
-
-        <main class="content-stage">
-            <section class="hero-panel reveal">
-                <div class="hero-copy">
-                    <p class="section-tag">AI Application Engineer</p>
-                    <h2>把模型能力封装成可运行、可演示、可部署的产品</h2>
-                    <p>
-                        我关注的不只是模型答得对不对，更关注检索链路、接口组织、交互细节和部署稳定性是否形成闭环。
-                        这个站点本身就是一个小型 AI 应用样板。
+        <main class="dashboard">
+            <section id="overview" class="hero-panel reveal">
+                <div class="hero-main">
+                    <p class="section-tag">System Overview</p>
+                    <h1>AI 应用开发工程师控制台</h1>
+                    <p class="hero-text">
+                        这里展示的不只是简历内容，而是一套可运行的 AI 应用系统。默认可围绕我的经历、项目与技能进行问答，
+                        上传 PDF 后会切换为面向当前文档的知识问答场景。
                     </p>
+                    <div class="hero-actions">
+                        <a class="action-button primary" href="#assistant">进入问答</a>
+                        <a class="action-button secondary" href="#projects">查看项目</a>
+                    </div>
                 </div>
-                <div class="hero-grid">
-                    <article>
-                        <strong>简历问答</strong>
-                        <span>默认围绕个人经历、项目与技能回答。</span>
-                    </article>
-                    <article>
-                        <strong>文档切换</strong>
-                        <span>上传 PDF 后自动切换到当前文档知识库。</span>
-                    </article>
-                    <article>
-                        <strong>流式交互</strong>
-                        <span>前端保持渐进输出，减少等待的空白感。</span>
-                    </article>
-                </div>
-            </section>
-
-            <section id="about" class="editorial-section reveal">
-                <div class="section-head">
-                    <p class="section-tag">About</p>
-                    <h3>我更擅长把技术能力整理成工程结果</h3>
-                </div>
-                <div class="story-grid">
-                    <article class="story-card story-main">
-                        <p>
-                            项目重点始终围绕一个问题: 大模型能力怎样从“能跑”走向“像产品一样可用”。
-                            因此我会同时关注后端接口、知识库组织、部署脚本、前端交互和整体演示效果。
-                        </p>
-                    </article>
-                    <article class="story-card">
-                        <p class="story-label">Build Focus</p>
-                        <p>RAG、Agent 工作流、FastAPI 服务化、轻量化问答系统。</p>
-                    </article>
-                    <article class="story-card">
-                        <p class="story-label">Project Goal</p>
-                        <p>把一个围绕个人简历和上传文档的问答系统，打磨成稳定、自然、可部署的小型应用。</p>
-                    </article>
+                <div class="hero-side">
+                    <div class="status-tile">
+                        <p class="tile-label">Operator</p>
+                        <strong>{{ profile.name }}</strong>
+                        <span>{{ profile.location }}</span>
+                    </div>
+                    <div class="status-tile">
+                        <p class="tile-label">Focus</p>
+                        <strong>RAG / Agent / FastAPI</strong>
+                        <span>面向可部署与可演示的小型 AI 系统</span>
+                    </div>
+                    <div class="status-tile">
+                        <p class="tile-label">Contact</p>
+                        <strong>{{ profile.email }}</strong>
+                        <span>{{ profile.phone }}</span>
+                    </div>
                 </div>
             </section>
 
-            <section id="experience" class="editorial-section reveal">
+            <section class="grid-band reveal">
+                <article class="panel profile-panel">
+                    <div class="panel-head">
+                        <p class="section-tag">Profile Feed</p>
+                        <span class="panel-badge">Live</span>
+                    </div>
+                    <div class="profile-body">
+                        <img
+                            class="portrait-image"
+                            src="{{ url_for('static', path='/images/profile.jpg') }}"
+                            alt="{{ profile.name }}"
+                        >
+                        <div class="profile-copy">
+                            <h2>{{ profile.name }}</h2>
+                            <p>{{ profile.tagline }}</p>
+                        </div>
+                    </div>
+                </article>
+
+                <article class="panel summary-panel">
+                    <div class="panel-head">
+                        <p class="section-tag">Mission</p>
+                        <span class="panel-badge">Core</span>
+                    </div>
+                    <p class="summary-text">
+                        我的重点不只是模型效果，而是把检索、路由、接口、部署与前端体验组织成一个整体。
+                        这个项目本身就是对“轻量 AI 产品工程化”的持续打磨。
+                    </p>
+                    <div class="signal-grid">
+                        <div>
+                            <strong>Resume QA</strong>
+                            <span>个人资料场景问答</span>
+                        </div>
+                        <div>
+                            <strong>PDF QA</strong>
+                            <span>上传文档后即时切换</span>
+                        </div>
+                        <div>
+                            <strong>Streaming</strong>
+                            <span>前端渐进输出反馈</span>
+                        </div>
+                    </div>
+                </article>
+            </section>
+
+            <section id="experience" class="panel reveal">
                 <div class="section-head">
-                    <p class="section-tag">Experience</p>
-                    <h3>教育与工作经历</h3>
+                    <div>
+                        <p class="section-tag">Experience</p>
+                        <h3>教育与工作经历</h3>
+                    </div>
+                    <span class="panel-badge">Timeline</span>
                 </div>
-                <div class="stack-list">
+                <div class="timeline-grid">
                     {% for item in experience %}
-                    <article class="stack-card">
-                        <div class="stack-meta">
-                            <p class="stack-period">{{ item.period }}</p>
-                            <p class="stack-company">{{ item.company }}</p>
-                        </div>
-                        <div class="stack-body">
-                            <h4>{{ item.role }}</h4>
-                            <p>{{ item.summary }}</p>
-                        </div>
+                    <article class="timeline-card">
+                        <p class="timeline-period">{{ item.period }}</p>
+                        <h4>{{ item.role }}</h4>
+                        <p class="timeline-company">{{ item.company }}</p>
+                        <p>{{ item.summary }}</p>
                     </article>
                     {% endfor %}
                 </div>
             </section>
 
-            <section id="projects" class="editorial-section reveal">
+            <section id="projects" class="panel reveal">
                 <div class="section-head">
-                    <p class="section-tag">Projects</p>
-                    <h3>重点项目</h3>
+                    <div>
+                        <p class="section-tag">Projects</p>
+                        <h3>重点项目</h3>
+                    </div>
+                    <span class="panel-badge">Modules</span>
                 </div>
-                <div class="magazine-grid">
+                <div class="project-grid">
                     {% for item in projects %}
-                    <article class="mag-card">
-                        <p class="mag-stack">{{ item.stack }}</p>
+                    <article class="project-card">
+                        <p class="project-stack">{{ item.stack }}</p>
                         <h4>{{ item.name }}</h4>
                         <p>{{ item.description }}</p>
                     </article>
@@ -134,49 +145,55 @@
                 </div>
             </section>
 
-            <section id="skills" class="editorial-section reveal">
+            <section id="skills" class="panel reveal">
                 <div class="section-head">
-                    <p class="section-tag">Skills</p>
-                    <h3>技术栈</h3>
+                    <div>
+                        <p class="section-tag">Skills</p>
+                        <h3>技术栈</h3>
+                    </div>
+                    <span class="panel-badge">Stack</span>
                 </div>
-                <div class="skills-matrix">
+                <div class="skills-grid">
                     {% for skill in skills %}
                     <span>{{ skill }}</span>
                     {% endfor %}
                 </div>
             </section>
 
-            <section id="assistant" class="editorial-section assistant-section reveal">
-                <div class="section-head">
-                    <p class="section-tag">Assistant</p>
-                    <h3>问答助手</h3>
+            <section id="assistant" class="assistant-panel reveal">
+                <div class="assistant-header">
+                    <div>
+                        <p class="section-tag">Assistant Console</p>
+                        <h3>问答助手</h3>
+                    </div>
+                    <p class="assistant-note">默认回答与我个人经历、项目和技能相关的问题。上传 PDF 后自动切换到文档问答模式。</p>
                 </div>
 
                 <div class="assistant-layout">
-                    <div class="assistant-brief">
-                        <div class="brief-card">
-                            <p class="story-label">Knowledge Mode</p>
+                    <aside class="assistant-sidebar">
+                        <div class="sidebar-card">
+                            <p class="tile-label">Knowledge Mode</p>
                             <span id="knowledge-status" class="status-pill">当前模式：个人简历问答</span>
                         </div>
-                        <div class="brief-card">
-                            <p class="story-label">Document Control</p>
+                        <div class="sidebar-card">
+                            <p class="tile-label">Document Input</p>
                             <label class="upload-chip">
                                 <input id="resume-upload" type="file" accept=".pdf">
                                 <span>上传 PDF</span>
                             </label>
                             <button id="clear-upload" type="button" class="ghost-action">清空上传</button>
                         </div>
-                        <div class="brief-card">
-                            <p class="story-label">Quick Ask</p>
+                        <div class="sidebar-card">
+                            <p class="tile-label">Quick Commands</p>
                             <div class="suggestion-row">
                                 <button type="button" class="suggestion-chip" data-question="请介绍孙雪海的工作经历。">工作经历</button>
                                 <button type="button" class="suggestion-chip" data-question="请总结我的技术栈。">技术栈</button>
                                 <button type="button" class="suggestion-chip" data-question="我做过哪些 AI 项目？">AI 项目</button>
                             </div>
                         </div>
-                    </div>
+                    </aside>
 
-                    <div class="assistant-console">
+                    <div class="assistant-main">
                         <div id="chat-log" class="chat-log">
                             <div class="message assistant">
                                 你可以直接问我个人经历、项目、技能，也可以上传 PDF 后围绕那份文档继续提问。
@@ -190,11 +207,6 @@
                     </div>
                 </div>
             </section>
-
-            <footer class="page-footer">
-                <p>Built with FastAPI, Chroma and a resume-first QA workflow.</p>
-                <p>{{ profile.email }}</p>
-            </footer>
         </main>
     </div>
 
