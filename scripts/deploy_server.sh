@@ -34,8 +34,11 @@ else
   echo "Skipping git pull."
 fi
 
-echo "Rebuilding and restarting with docker compose..."
-docker compose up -d --build
+echo "Pulling latest application image..."
+docker compose pull
+
+echo "Restarting with docker compose..."
+docker compose up -d
 
 echo "Container status:"
 docker compose ps
