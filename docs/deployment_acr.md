@@ -1,6 +1,14 @@
 # ACR-Based Docker Build Notes
 
+更新日期：2026-04-16
+
 This project can be built without pulling directly from Docker Hub by parameterizing the Docker base image.
+
+Current repository state:
+
+- The production image now copies prebuilt `frontend/dist` assets directly into the container.
+- Server deployment no longer needs to build the frontend with Node in Docker.
+- Docker Hub sensitivity is now mainly about the Python base image, not the frontend toolchain.
 
 ## Why This Exists
 
@@ -20,10 +28,9 @@ The repository now supports:
 
 ## Recommended Strategy
 
-Use ACR for both layers below:
+Use ACR for the Python base image layer:
 
 1. Base image
-2. Application image
 
 That gives you a stable server-side workflow:
 
@@ -51,6 +58,15 @@ Mirror or push a Python base image into your own ACR registry, for example:
 ```
 
 The exact registry address depends on your Alibaba Cloud region and namespace.
+
+Before building on the server, prepare the frontend assets locally:
+
+```bash
+cd frontend
+npm.cmd run build
+```
+
+Then commit and push `frontend/dist`.
 
 ## Step 2: Build the App Image Against ACR
 
@@ -100,3 +116,4 @@ docker run new container
 - If `pip install` is also slow or unstable, pass a domestic `PIP_INDEX_URL`.
 - Do not hardcode your private ACR registry address into the repository unless you intend the repo to be environment-specific.
 - Keep production `.env` only on the server.
+- If you want `/` to serve the new frontend, also set `HOME_RENDER_MODE=frontend` in production `.env`.

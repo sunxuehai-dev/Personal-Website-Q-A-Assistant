@@ -8,7 +8,7 @@
 - 流式回答
 - 轻量会话记忆
 - 小机器可用的基础运行时保护
-- 独立 `frontend/` 前端工程骨架
+- 独立 `frontend/` 前端工程与 `/frontend` 预览入口
 
 项目定位不是做复杂通用 Agent 平台，而是做成“麻雀虽小，五脏俱全”的个人网站问答助手。
 
@@ -24,6 +24,12 @@
 
 ```text
 http://127.0.0.1:8008/
+```
+
+独立前端预览地址：
+
+```text
+http://127.0.0.1:8008/frontend
 ```
 
 ## 安装
@@ -45,6 +51,13 @@ http://127.0.0.1:8008/
 ```bash
 cd frontend
 npm.cmd install
+```
+
+独立前端构建：
+
+```bash
+cd frontend
+npm.cmd run build
 ```
 
 ## 核心能力
@@ -99,6 +112,7 @@ npm.cmd install
 主要接口：
 
 - `GET /`
+- `GET /frontend`
 - `GET /health`
 - `GET /ready`
 - `GET /runtime_status`
@@ -144,6 +158,7 @@ npm.cmd run build
 - 自有简历灌库重建规则
 - 会话记忆追问与清空
 - 聊天容量保护与上传互斥保护
+- 首页切换到独立前端的配置行为
 
 ## 部署
 
@@ -179,10 +194,36 @@ bash scripts/deploy_server.sh
 bash scripts/deploy_server.sh --skip-pull
 ```
 
+## 首页切换策略
+
+当前默认策略：
+
+- `/` 保持旧版模板主页
+- `/frontend` 提供独立前端预览
+
+如需让 `/` 直接切到新前端，请在 `.env` 中设置：
+
+```text
+HOME_RENDER_MODE=frontend
+```
+
+可选值：
+
+- `legacy`：`/` 返回旧版模板主页
+- `frontend`：`/` 直接返回 `frontend/dist/index.html`
+
+推荐切换步骤：
+
+1. 先构建独立前端：`cd frontend && npm.cmd run build`
+2. 先在线上检查 `/frontend`
+3. 再修改 `.env` 中的 `HOME_RENDER_MODE=frontend`
+4. 重启服务或重新部署
+
 ## 部署注意事项
 
 - 不要提交 `.env`
 - 生产环境请设置 `RESUME_ASSISTANT_ENV=production`
+- 生产环境如需切主页入口，请显式设置 `HOME_RENDER_MODE`
 - 将 `CORS_ALLOWED_ORIGINS` 和 `ALLOWED_HOSTS` 收紧到真实域名
 - 使用 `/ready` 作为部署就绪探针
 - 如果模型调用偏慢，可调大 `LLM_TIMEOUT_SECONDS`
