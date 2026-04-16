@@ -12,6 +12,7 @@ import "./style.css";
 import type { ChatReference, ChatResponse, SiteContent } from "./types";
 
 const storageKey = "resume_assistant_frontend_session_id";
+const csdnUrl = "https://blog.csdn.net/sunxuehai1?spm=1000.2115.3001.5343";
 
 function createSessionId() {
   const randomUuid = globalThis.crypto?.randomUUID?.();
@@ -118,29 +119,16 @@ function renderApp(siteContent: SiteContent) {
         </div>
       </section>
 
-      <section class="overview-row">
-        <article class="panel overview-panel">
-          <p class="panel-kicker">Profile</p>
-          <h2>我在做什么</h2>
-          <div class="paragraphs">
-            <p>我在做的是资源克制但功能完整的 AI 应用。它们不需要无限堆叠能力，而要能上线、能维护、能被真实用户持续使用。</p>
-            <p>这个网站本身就是一个产品样本：既是个人主页，也是一个可直接交互的问答界面，让内容以对话方式被访问。</p>
-          </div>
-        </article>
-
-        <article class="panel overview-panel">
-          <p class="panel-kicker">Approach</p>
-          <h2>我偏好的产品方法</h2>
-          <div class="feature-list">
-            <div class="feature-item">
-              <strong>结构清晰的问答链路</strong>
-              <p>记忆、RAG、引用展示、按需联网，各模块边界清楚，能力不过度堆叠。</p>
-            </div>
-            <div class="feature-item">
-              <strong>小机器也能稳定运行</strong>
-              <p>优先控制复杂度和资源占用，让 2 核 2G 的实际部署环境也能长期承载。</p>
-            </div>
-          </div>
+      <section class="link-strip">
+        <a class="panel link-card" href="${csdnUrl}" target="_blank" rel="noreferrer">
+          <p class="panel-kicker">Writing</p>
+          <strong>CSDN 博客</strong>
+          <p>查看我的技术文章、项目记录与开发思考。</p>
+        </a>
+        <article class="panel link-card compact-card">
+          <p class="panel-kicker">Build</p>
+          <strong>这个网站本身也是作品</strong>
+          <p>前后端分离、RAG、记忆、引用展示与轻量部署，都是当前网站的一部分。</p>
         </article>
       </section>
 
