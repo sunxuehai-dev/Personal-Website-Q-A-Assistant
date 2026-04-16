@@ -64,42 +64,42 @@ function renderApp(siteContent: SiteContent) {
     <div class="shell dashboard-shell">
       <section class="hero hero-console">
         <div class="hero-copy">
-          <p class="eyebrow">Signal Console / Frontend v2</p>
-          <h1>把个人网站升级成可运行的 AI 工作台</h1>
+          <p class="eyebrow">Personal AI Product / Live Site</p>
+          <h1>把个人经历、项目和知识库做成一个能直接对话的网站</h1>
           <p class="subtitle">${escapeHtml(siteContent.profile.name)} · ${escapeHtml(siteContent.profile.title)}</p>
-          <p class="copy">${escapeHtml(siteContent.profile.tagline)}。当前版本已经完成前后端分离第二阶段，独立前端工程通过 API 直接接入问答、上传、状态与会话能力。</p>
+          <p class="copy">${escapeHtml(siteContent.profile.tagline)}。这不是一张静态简历，而是一套真正上线运行的轻量 AI 产品：前端独立构建、后端 API 化，支持记忆、RAG、上传文档问答和按需联网补充。</p>
           <div class="hero-tags">
-            <span class="hero-tag">前后端分离进行中</span>
-            <span class="hero-tag">轻量部署优先</span>
-            <span class="hero-tag">2 核 2G 友好</span>
+            <span class="hero-tag">正式首页已切换</span>
+            <span class="hero-tag">FastAPI + Vite</span>
+            <span class="hero-tag">2 核 2G 可运行</span>
           </div>
         </div>
         <div class="hero-signal">
           <div class="signal-card primary">
-            <span class="signal-label">System Role</span>
-            <strong>Personal AI Site</strong>
-            <p>一个能回答简历、项目、上传文档并保留基础会话记忆的个人网站助手。</p>
+            <span class="signal-label">Current Product</span>
+            <strong>Resume Assistant</strong>
+            <p>一个嵌入个人网站的轻量问答助手，可以回答关于我本人、项目经历和上传文档的问题。</p>
           </div>
           <div class="signal-grid">
             <div class="signal-card">
-              <span class="signal-label">Deploy</span>
-              <strong>FastAPI Monolith</strong>
-              <p>单体架构优先，压低服务器资源成本。</p>
+              <span class="signal-label">Architecture</span>
+              <strong>API First</strong>
+              <p>前后端边界清晰，接口稳定，页面内容由后端 API 驱动。</p>
             </div>
             <div class="signal-card">
-              <span class="signal-label">Access</span>
-              <strong>/frontend</strong>
-              <p>新前端独立挂载，旧站点仍继续保留。</p>
+              <span class="signal-label">Deployment</span>
+              <strong>Single Server</strong>
+              <p>保留单体服务与轻量部署，优先稳定交付而不是复杂扩展。</p>
             </div>
             <div class="signal-card">
-              <span class="signal-label">Operator</span>
+              <span class="signal-label">Location</span>
               <strong>${escapeHtml(siteContent.profile.location)}</strong>
               <p>${escapeHtml(siteContent.profile.email)}</p>
             </div>
             <div class="signal-card">
-              <span class="signal-label">Model Slot</span>
-              <strong>qvq-max-2025-03-25</strong>
-              <p>按当前可用模型路线继续推进。</p>
+              <span class="signal-label">Interaction</span>
+              <strong>Stream + References</strong>
+              <p>回答流式输出，并展示来源标签和引用片段。</p>
             </div>
           </div>
         </div>
@@ -109,31 +109,31 @@ function renderApp(siteContent: SiteContent) {
         <article class="panel control-panel">
           <div class="panel-head">
             <div>
-              <p class="panel-kicker">Architecture</p>
-              <h2>当前系统模块</h2>
+              <p class="panel-kicker">System Modules</p>
+              <h2>这个站点能做什么</h2>
             </div>
-            <span class="section-note">麻雀虽小，模块完整</span>
+            <span class="section-note">不是大而全，但足够完整</span>
           </div>
           <div class="module-grid">
             <div class="module-card">
               <span class="module-index">01</span>
-              <strong>Session Memory</strong>
-              <p>基于浏览器 session_id 持续对话，支持单会话清空重置。</p>
+              <strong>短期记忆</strong>
+              <p>浏览器会话级记忆，让连续追问能继承上下文，又不把系统做得过重。</p>
             </div>
             <div class="module-card">
               <span class="module-index">02</span>
-              <strong>RAG Retrieval</strong>
-              <p>内置个人简历知识库，并支持上传 PDF 后切换临时知识库问答。</p>
+              <strong>双知识源 RAG</strong>
+              <p>默认围绕个人简历问答，上传 PDF 后自动切到临时知识库模式。</p>
             </div>
             <div class="module-card">
               <span class="module-index">03</span>
-              <strong>Web Augmentation</strong>
-              <p>本地资料不足时启用联网补充，回答中保留来源标识与引用片段。</p>
+              <strong>联网补充</strong>
+              <p>本地资料不够时，再按需联网补充，而不是把所有问题都丢给搜索。</p>
             </div>
             <div class="module-card">
               <span class="module-index">04</span>
-              <strong>Runtime Guard</strong>
-              <p>对聊天并发与上传任务做轻量限流，适配轻量服务器承载边界。</p>
+              <strong>运行时保护</strong>
+              <p>针对小规格服务器做了上传互斥和聊天限流，保证线上环境不容易拖垮。</p>
             </div>
           </div>
         </article>
@@ -141,10 +141,10 @@ function renderApp(siteContent: SiteContent) {
         <article class="panel control-panel">
           <div class="panel-head">
             <div>
-              <p class="panel-kicker">Resume Knowledge</p>
-              <h2>工程背景与项目信号</h2>
+              <p class="panel-kicker">Experience Graph</p>
+              <h2>工程背景与项目脉络</h2>
             </div>
-            <span class="section-note">内容由 API 动态加载</span>
+            <span class="section-note">站点内容由统一内容接口加载</span>
           </div>
           <div class="timeline">
             ${siteContent.experience
@@ -183,8 +183,8 @@ function renderApp(siteContent: SiteContent) {
           <div class="assistant-head">
             <div>
               <p class="panel-kicker">Assistant Workspace</p>
-              <h2>问答控制台</h2>
-              <p class="section-summary">这一块是实际产品工作区，支持流式输出、引用来源展示、上传知识库切换和会话清空。</p>
+              <h2>直接开问</h2>
+              <p class="section-summary">这里是网站的实际工作区。你可以直接提问、上传 PDF、查看引用来源，或者清空当前会话重新开始。</p>
               <div class="status-group">
                 <span id="knowledge-status" class="status-chip">当前模式：初始化中</span>
                 <span id="session-status" class="status-chip subtle">会话记忆：初始化中</span>
@@ -202,12 +202,12 @@ function renderApp(siteContent: SiteContent) {
           </div>
           <div id="chat-log" class="chat-log">
             <div class="message assistant">
-              <div class="message-body">控制台已联通后端。你现在可以直接提问，也可以先上传 PDF 切换到临时知识库模式。</div>
+              <div class="message-body">你好，我已经联通后端问答链路。你可以问我的项目、经历、技术栈，也可以先上传 PDF 再围绕文档继续追问。</div>
             </div>
           </div>
           <form id="chat-form" class="chat-form">
-            <textarea id="chat-input" rows="4" placeholder="例如：请总结一下你的 AI 项目经验，并说明当前问答链路包含哪些模块"></textarea>
-            <button id="send-button" type="submit">发送</button>
+            <textarea id="chat-input" rows="4" placeholder="例如：你做过哪些 AI 项目？这个问答助手的链路是怎么设计的？"></textarea>
+            <button id="send-button" type="submit">开始提问</button>
           </form>
         </article>
 
@@ -216,7 +216,7 @@ function renderApp(siteContent: SiteContent) {
             <div class="panel-head">
               <div>
                 <p class="panel-kicker">Capability Matrix</p>
-                <h2>技能栈接口层</h2>
+                <h2>核心技术栈</h2>
               </div>
             </div>
             <div class="chip-row">
@@ -227,26 +227,26 @@ function renderApp(siteContent: SiteContent) {
           <section class="panel side-panel">
             <div class="panel-head">
               <div>
-                <p class="panel-kicker">Operation Notes</p>
-                <h2>运行规则</h2>
+                <p class="panel-kicker">Use Cases</p>
+                <h2>使用方式</h2>
               </div>
             </div>
             <div class="notes-list">
               <div class="note-card">
-                <strong>默认知识源</strong>
-                <p>未上传文档时，问答围绕个人简历与站点资料展开。</p>
+                <strong>问我本人</strong>
+                <p>默认模式会围绕我的个人经历、项目背景和技术栈进行回答。</p>
               </div>
               <div class="note-card">
-                <strong>上传切换</strong>
-                <p>上传 PDF 后，系统优先按当前上传资料进行问答并返回引用片段。</p>
+                <strong>问上传文档</strong>
+                <p>上传 PDF 后，系统会优先围绕当前文档检索并给出引用片段。</p>
               </div>
               <div class="note-card">
-                <strong>记忆边界</strong>
-                <p>会话记忆限定在当前浏览器会话，符合个人网站场景与资源约束。</p>
+                <strong>连续追问</strong>
+                <p>当前浏览器会话内保留短期上下文，适合轻量多轮对话。</p>
               </div>
               <div class="note-card">
-                <strong>架构策略</strong>
-                <p>保留单体后端与轻量前端，先稳定交付，再逐步增强。</p>
+                <strong>资源约束</strong>
+                <p>整个系统按小规格服务器设计，优先实用、稳定和可维护。</p>
               </div>
             </div>
           </section>
