@@ -178,11 +178,6 @@ function renderApp(siteContent: SiteContent) {
               )
               .join("")}
           </div>
-          <div class="experience-summary">
-            <span>AI 应用落地</span>
-            <span>FastAPI / 前后端联动</span>
-            <span>检索与部署实践</span>
-          </div>
         </article>
       </section>
 
