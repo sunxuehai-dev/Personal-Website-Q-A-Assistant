@@ -111,6 +111,7 @@ function renderApp(siteContent: SiteContent) {
             <span>${escapeHtml(siteContent.profile.email)}</span>
             <span>${escapeHtml(siteContent.profile.phone)}</span>
           </div>
+          <a class="inline-link" href="${csdnUrl}" target="_blank" rel="noreferrer">CSDN 博客</a>
         </div>
 
         <div class="hero-portrait">
@@ -123,20 +124,6 @@ function renderApp(siteContent: SiteContent) {
             <p>偏好轻量架构、真实部署、清晰边界和可维护的用户体验。</p>
           </div>
         </div>
-      </section>
-
-      <section class="link-strip">
-        <a class="panel link-card link-card-primary" href="${csdnUrl}" target="_blank" rel="noreferrer">
-          <p class="panel-kicker">Writing</p>
-          <strong>CSDN 博客</strong>
-          <p>查看我的技术文章、项目记录与开发思考。</p>
-          <span class="link-highlight">前往阅读</span>
-        </a>
-        <article class="panel link-card compact-card">
-          <p class="panel-kicker">Build</p>
-          <strong>这个网站本身也是作品</strong>
-          <p>前后端分离、RAG、记忆、引用展示与轻量部署，都是当前网站的一部分。</p>
-        </article>
       </section>
 
       <section class="content-grid">
