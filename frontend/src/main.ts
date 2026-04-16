@@ -99,11 +99,11 @@ function renderApp(siteContent: SiteContent) {
           <div class="chat-column">
             <div id="chat-log" class="chat-log">
               <div class="message assistant">
-                <div class="message-body">你好，你可以直接问我的经历、项目、技术栈，也可以先上传 PDF 再围绕文档继续提问。</div>
+                <div class="message-body">你好，你可以直接问我的经历、项目、技术栈，也可以先上传 PDF，再围绕文档继续提问。</div>
               </div>
             </div>
             <form id="chat-form" class="chat-form">
-              <textarea id="chat-input" rows="4" placeholder="例如：你做过哪些 AI 项目？这个问答助手的链路怎么设计？"></textarea>
+              <textarea id="chat-input" rows="4" placeholder="例如：你做过哪些 AI 项目？这个问答助手的链路是怎么设计的？"></textarea>
               <button id="send-button" type="submit">发送问题</button>
             </form>
           </div>
@@ -167,7 +167,7 @@ function renderApp(siteContent: SiteContent) {
           <h2>我偏好的产品特征</h2>
           <div class="feature-list">
             <div class="feature-item">
-              <strong>结构清楚的问答链路</strong>
+              <strong>结构清晰的问答链路</strong>
               <p>短期记忆、RAG、引用展示、按需联网，而不是无边界堆能力。</p>
             </div>
             <div class="feature-item">
@@ -282,11 +282,7 @@ function renderAnswerMeta(node: HTMLElement | null, payload: ChatResponse) {
 }
 
 function renderReferenceCard(reference: ChatReference) {
-  const parts = [
-    reference.source_file || "未知来源",
-    reference.page ? `P${reference.page}` : "",
-    reference.retrieval_method || ""
-  ].filter(Boolean);
+  const parts = [reference.source_file || "未知来源", reference.page ? `P${reference.page}` : "", reference.retrieval_method || ""].filter(Boolean);
 
   return `
     <div class="reference-card">
@@ -320,7 +316,7 @@ async function refreshStatusText() {
     return;
   }
   if (runtimeStatus.upload.busy) {
-    setStatusText("runtime-status", "运行状态：上传灌库处理中", "busy");
+    setStatusText("runtime-status", "运行状态：上传入库处理中", "busy");
     return;
   }
   if (runtimeStatus.chat.busy) {
@@ -441,7 +437,7 @@ function bindRuntime() {
       const payload = await uploadResume(file);
       state.hasUploadedDocs = true;
       state.activeUploadFile = payload.file_name;
-      appendMessage("assistant", `已完成上传并自动灌库：${payload.file_name}`);
+      appendMessage("assistant", `已完成上传并自动入库：${payload.file_name}`);
     } catch (error) {
       appendMessage("assistant", `上传失败：${(error as Error).message}`);
     } finally {
@@ -491,6 +487,6 @@ fetchSiteContent()
   .catch((error: Error) => {
     const app = document.getElementById("app");
     if (app) {
-      app.innerHTML = `<div class="shell"><section class="panel"><h1>前端骨架初始化失败</h1><p>${escapeHtml(error.message)}</p></section></div>`;
+      app.innerHTML = `<div class="shell"><section class="panel"><h1>前端框架初始化失败</h1><p>${escapeHtml(error.message)}</p></section></div>`;
     }
   });
