@@ -1,19 +1,5 @@
 ARG BASE_IMAGE=python:3.11-slim
 
-FROM node:20-slim AS frontend-builder
-
-WORKDIR /frontend
-
-COPY frontend/package.json ./package.json
-COPY frontend/package-lock.json ./package-lock.json
-RUN npm ci
-
-COPY frontend/index.html ./index.html
-COPY frontend/tsconfig.json ./tsconfig.json
-COPY frontend/vite.config.ts ./vite.config.ts
-COPY frontend/src ./src
-RUN npm run build
-
 FROM ${BASE_IMAGE}
 
 ARG PIP_INDEX_URL=https://pypi.org/simple
@@ -31,7 +17,7 @@ RUN python -m pip install --no-cache-dir --upgrade pip \
     && python -m pip install --no-cache-dir -r requirements.txt
 
 COPY app ./app
-COPY --from=frontend-builder /frontend/dist ./frontend/dist
+COPY frontend/dist ./frontend/dist
 COPY scripts ./scripts
 COPY static ./static
 COPY templates ./templates
