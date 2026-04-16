@@ -63,19 +63,29 @@ function renderApp(siteContent: SiteContent) {
   app.innerHTML = `
     <div class="shell site-shell">
       <section id="assistant" class="panel assistant-panel assistant-first">
-        <div class="assistant-head">
-          <div>
-            <p class="panel-kicker">Ask Me</p>
-            <h2>和这个网站直接对话</h2>
-            <p class="section-summary">这是这个网站最重要的入口。你可以直接问我的经历、项目、技术栈，也可以上传 PDF 再围绕文档继续追问。</p>
+        <div class="assistant-intro">
+          <div class="assistant-copy">
+            <p class="panel-kicker">Interactive Profile</p>
+            <h2>先对话，再了解我。</h2>
+            <p class="section-summary">这是一个可以直接交互的个人主页。你可以提问我的经历、项目、技术栈，也可以上传文档，让网站围绕那份资料继续回答。</p>
+            <div class="hero-meta assistant-meta">
+              <span>${escapeHtml(siteContent.profile.name)}</span>
+              <span>${escapeHtml(siteContent.profile.title)}</span>
+              <span>${escapeHtml(siteContent.profile.location)}</span>
+            </div>
           </div>
-          <div class="actions">
-            <label class="upload">
-              <input id="resume-upload" type="file" accept=".pdf" />
-              <span>上传文档</span>
-            </label>
-            <button id="clear-upload" type="button">清空上传</button>
-            <button id="clear-session" type="button">清空会话</button>
+          <div class="assistant-side">
+            <div class="portrait-frame compact">
+              <img class="portrait-image" src="/static/images/profile.jpg" alt="${escapeHtml(siteContent.profile.name)} portrait" />
+            </div>
+            <div class="actions">
+              <label class="upload">
+                <input id="resume-upload" type="file" accept=".pdf" />
+                <span>上传文档</span>
+              </label>
+              <button id="clear-upload" type="button">清空上传</button>
+              <button id="clear-session" type="button">清空会话</button>
+            </div>
           </div>
         </div>
 
@@ -94,7 +104,7 @@ function renderApp(siteContent: SiteContent) {
             </div>
             <form id="chat-form" class="chat-form">
               <textarea id="chat-input" rows="4" placeholder="例如：你做过哪些 AI 项目？这个问答助手的链路怎么设计？"></textarea>
-              <button id="send-button" type="submit">开始提问</button>
+              <button id="send-button" type="submit">发送问题</button>
             </form>
           </div>
           <div class="assistant-note-grid">
@@ -123,10 +133,6 @@ function renderApp(siteContent: SiteContent) {
           <h1>${escapeHtml(siteContent.profile.name)}</h1>
           <p class="hero-title">${escapeHtml(siteContent.profile.title)}</p>
           <p class="hero-copy-text">${escapeHtml(siteContent.profile.tagline)}。我关注的不是孤立的模型能力，而是把检索、接口、前端体验与部署边界组织成完整产品。</p>
-          <div class="hero-actions">
-            <a class="hero-link primary" href="#assistant">和我直接对话</a>
-            <a class="hero-link secondary" href="#projects">查看代表项目</a>
-          </div>
           <div class="hero-meta">
             <span>${escapeHtml(siteContent.profile.location)}</span>
             <span>${escapeHtml(siteContent.profile.email)}</span>
@@ -149,7 +155,7 @@ function renderApp(siteContent: SiteContent) {
       <section class="overview-row">
         <article class="panel overview-panel">
           <p class="panel-kicker">Profile</p>
-          <h2>关于我</h2>
+          <h2>我在做什么</h2>
           <div class="paragraphs">
             <p>我在做的是轻量但完整的 AI 应用：它们应该能上线、能维护、能被真实用户使用，而不只是一次性的模型演示。</p>
             <p>这个网站本身就是一个作品入口。你可以浏览我的经历和项目，也可以直接把它当成问答界面，和内容本身发生交互。</p>
@@ -158,7 +164,7 @@ function renderApp(siteContent: SiteContent) {
 
         <article class="panel overview-panel">
           <p class="panel-kicker">What I Build</p>
-          <h2>我偏好的系统能力</h2>
+          <h2>我偏好的产品特征</h2>
           <div class="feature-list">
             <div class="feature-item">
               <strong>结构清楚的问答链路</strong>
