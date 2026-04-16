@@ -62,77 +62,54 @@ function renderApp(siteContent: SiteContent) {
 
   app.innerHTML = `
     <div class="shell site-shell">
-      <section id="assistant" class="panel assistant-panel assistant-first">
-        <div class="assistant-intro">
-          <div class="assistant-copy">
-            <p class="panel-kicker">Interactive Profile</p>
-            <h2>先对话，再了解我。</h2>
-            <p class="section-summary">这是一个可以直接交互的个人主页。你可以提问我的经历、项目、技术栈，也可以上传文档，让网站围绕那份资料继续回答。</p>
-            <div class="hero-meta assistant-meta">
-              <span>${escapeHtml(siteContent.profile.name)}</span>
-              <span>${escapeHtml(siteContent.profile.title)}</span>
-              <span>${escapeHtml(siteContent.profile.location)}</span>
-            </div>
+      <section id="assistant" class="assistant-stage">
+        <div class="assistant-stage-copy">
+          <p class="panel-kicker">AI Assistant</p>
+          <h1>先问我，再认识我。</h1>
+          <p class="assistant-lead">这是一个嵌在个人网站里的轻量问答助手。你可以直接提问经历、项目、技术栈，也可以上传 PDF，让回答临时围绕文档展开。</p>
+          <div class="assistant-summary">
+            <span>${escapeHtml(siteContent.profile.name)}</span>
+            <span>${escapeHtml(siteContent.profile.title)}</span>
+            <span>${escapeHtml(siteContent.profile.location)}</span>
           </div>
-          <div class="assistant-side">
-            <div class="portrait-frame compact">
-              <img class="portrait-image" src="/static/images/profile.jpg" alt="${escapeHtml(siteContent.profile.name)} portrait" />
+        </div>
+
+        <div class="assistant-surface">
+          <div class="assistant-toolbar">
+            <div class="assistant-statusline">
+              <span id="knowledge-status" class="status-chip">当前模式：初始化中</span>
+              <span id="session-status" class="status-chip subtle">会话记忆：初始化中</span>
+              <span id="runtime-status" class="status-chip subtle">运行状态：初始化中</span>
             </div>
-            <div class="actions">
+            <div class="actions compact-actions">
               <label class="upload">
                 <input id="resume-upload" type="file" accept=".pdf" />
-                <span>上传文档</span>
+                <span>上传 PDF</span>
               </label>
-              <button id="clear-upload" type="button">清空上传</button>
-              <button id="clear-session" type="button">清空会话</button>
+              <button id="clear-upload" type="button">清空文档</button>
+              <button id="clear-session" type="button">新对话</button>
             </div>
           </div>
-        </div>
 
-        <div class="status-group">
-          <span id="knowledge-status" class="status-chip">当前模式：初始化中</span>
-          <span id="session-status" class="status-chip subtle">会话记忆：初始化中</span>
-          <span id="runtime-status" class="status-chip subtle">运行状态：初始化中</span>
-        </div>
+          <div id="chat-log" class="chat-log minimal-chat">
+            <div class="message assistant">
+              <div class="message-body">你好，你可以直接问我的项目经验、技术方案、职业经历，也可以上传一份 PDF 继续追问。</div>
+            </div>
+          </div>
 
-        <div class="assistant-layout">
-          <div class="chat-column">
-            <div id="chat-log" class="chat-log">
-              <div class="message assistant">
-                <div class="message-body">你好，你可以直接问我的经历、项目、技术栈，也可以先上传 PDF，再围绕文档继续提问。</div>
-              </div>
-            </div>
-            <form id="chat-form" class="chat-form">
-              <textarea id="chat-input" rows="4" placeholder="例如：你做过哪些 AI 项目？这个问答助手的链路是怎么设计的？"></textarea>
-              <button id="send-button" type="submit">发送问题</button>
-            </form>
-          </div>
-          <div class="assistant-note-grid">
-            <div class="module-card">
-              <span class="module-index">01</span>
-              <strong>默认模式</strong>
-              <p>未上传文档时，默认围绕我的资料与站点内容回答。</p>
-            </div>
-            <div class="module-card">
-              <span class="module-index">02</span>
-              <strong>上传切换</strong>
-              <p>上传 PDF 后，问答会优先围绕当前文档检索并回答。</p>
-            </div>
-            <div class="module-card">
-              <span class="module-index">03</span>
-              <strong>引用展示</strong>
-              <p>回答会尽量展示来源标签和引用片段，而不是只给结论。</p>
-            </div>
-          </div>
+          <form id="chat-form" class="chat-form minimal-form">
+            <textarea id="chat-input" rows="3" placeholder="例如：你做过哪些 AI 项目？这个问答助手的整体架构是怎样的？"></textarea>
+            <button id="send-button" type="submit">发送</button>
+          </form>
         </div>
       </section>
 
-      <section class="hero">
+      <section class="hero editorial-hero">
         <div class="hero-copy">
           <p class="eyebrow">AI Product Builder</p>
-          <h1>${escapeHtml(siteContent.profile.name)}</h1>
+          <h2>${escapeHtml(siteContent.profile.name)}</h2>
           <p class="hero-title">${escapeHtml(siteContent.profile.title)}</p>
-          <p class="hero-copy-text">${escapeHtml(siteContent.profile.tagline)}。我关注的不是孤立的模型能力，而是把检索、接口、前端体验与部署边界组织成完整产品。</p>
+          <p class="hero-copy-text">${escapeHtml(siteContent.profile.tagline)}。我更关注完整产品链路，而不是孤立的模型能力，偏好把检索、接口、前端体验与真实部署约束组织成稳定可用的系统。</p>
           <div class="hero-meta">
             <span>${escapeHtml(siteContent.profile.location)}</span>
             <span>${escapeHtml(siteContent.profile.email)}</span>
@@ -146,8 +123,8 @@ function renderApp(siteContent: SiteContent) {
           </div>
           <div class="portrait-note">
             <span class="summary-label">Current Focus</span>
-            <strong>RAG / Agent / FastAPI</strong>
-            <p>偏好清晰架构、稳定接口和面向真实部署环境的实现方式。</p>
+            <strong>RAG / Agent / FastAPI / Shipping</strong>
+            <p>偏好轻量架构、真实部署、清晰边界和可维护的用户体验。</p>
           </div>
         </div>
       </section>
@@ -157,22 +134,22 @@ function renderApp(siteContent: SiteContent) {
           <p class="panel-kicker">Profile</p>
           <h2>我在做什么</h2>
           <div class="paragraphs">
-            <p>我在做的是轻量但完整的 AI 应用：它们应该能上线、能维护、能被真实用户使用，而不只是一次性的模型演示。</p>
-            <p>这个网站本身就是一个作品入口。你可以浏览我的经历和项目，也可以直接把它当成问答界面，和内容本身发生交互。</p>
+            <p>我在做的是资源克制但功能完整的 AI 应用。它们不需要无限堆叠能力，而要能上线、能维护、能被真实用户持续使用。</p>
+            <p>这个网站本身就是一个产品样本：既是个人主页，也是一个可直接交互的问答界面，让内容以对话方式被访问。</p>
           </div>
         </article>
 
         <article class="panel overview-panel">
-          <p class="panel-kicker">What I Build</p>
-          <h2>我偏好的产品特征</h2>
+          <p class="panel-kicker">Approach</p>
+          <h2>我偏好的产品方法</h2>
           <div class="feature-list">
             <div class="feature-item">
               <strong>结构清晰的问答链路</strong>
-              <p>短期记忆、RAG、引用展示、按需联网，而不是无边界堆能力。</p>
+              <p>记忆、RAG、引用展示、按需联网，各模块边界清楚，能力不过度堆叠。</p>
             </div>
             <div class="feature-item">
               <strong>小机器也能稳定运行</strong>
-              <p>优先控制复杂度和资源占用，让产品真的能部署和维护。</p>
+              <p>优先控制复杂度和资源占用，让 2 核 2G 的实际部署环境也能长期承载。</p>
             </div>
           </div>
         </article>
@@ -282,7 +259,11 @@ function renderAnswerMeta(node: HTMLElement | null, payload: ChatResponse) {
 }
 
 function renderReferenceCard(reference: ChatReference) {
-  const parts = [reference.source_file || "未知来源", reference.page ? `P${reference.page}` : "", reference.retrieval_method || ""].filter(Boolean);
+  const parts = [
+    reference.source_file || "未知来源",
+    reference.page ? `P${reference.page}` : "",
+    reference.retrieval_method || ""
+  ].filter(Boolean);
 
   return `
     <div class="reference-card">
@@ -300,15 +281,15 @@ async function refreshStatusText() {
   if (state.isUploading) {
     setStatusText("knowledge-status", "当前模式：正在处理上传文档", "busy");
   } else if (state.hasUploadedDocs && state.activeUploadFile) {
-    setStatusText("knowledge-status", `当前模式：上传文档问答（${state.activeUploadFile}）`);
+    setStatusText("knowledge-status", `当前模式：文档问答 · ${state.activeUploadFile}`);
   } else {
-    setStatusText("knowledge-status", "当前模式：个人简历问答");
+    setStatusText("knowledge-status", "当前模式：站内问答");
   }
 
   if (state.lastSessionResetAt) {
-    setStatusText("session-status", "会话记忆：已清空，后续对话将重新积累", "subtle");
+    setStatusText("session-status", "会话记忆：已清空", "subtle");
   } else {
-    setStatusText("session-status", "会话记忆：当前浏览器会话已启用", "subtle");
+    setStatusText("session-status", "会话记忆：当前浏览器会话", "subtle");
   }
 
   if (state.isSending) {
@@ -316,13 +297,13 @@ async function refreshStatusText() {
     return;
   }
   if (runtimeStatus.upload.busy) {
-    setStatusText("runtime-status", "运行状态：上传入库处理中", "busy");
+    setStatusText("runtime-status", "运行状态：文档处理中", "busy");
     return;
   }
   if (runtimeStatus.chat.busy) {
     setStatusText(
       "runtime-status",
-      `运行状态：聊天容量已满（${runtimeStatus.chat.active}/${runtimeStatus.chat.max_concurrent}）`,
+      `运行状态：并发已满（${runtimeStatus.chat.active}/${runtimeStatus.chat.max_concurrent}）`,
       "busy"
     );
     return;
@@ -437,7 +418,7 @@ function bindRuntime() {
       const payload = await uploadResume(file);
       state.hasUploadedDocs = true;
       state.activeUploadFile = payload.file_name;
-      appendMessage("assistant", `已完成上传并自动入库：${payload.file_name}`);
+      appendMessage("assistant", `文档已上传并完成入库：${payload.file_name}`);
     } catch (error) {
       appendMessage("assistant", `上传失败：${(error as Error).message}`);
     } finally {
@@ -454,7 +435,7 @@ function bindRuntime() {
       await clearUploadedDocs();
       state.hasUploadedDocs = false;
       state.activeUploadFile = null;
-      appendMessage("assistant", "已清空上传知识库，当前恢复为个人简历问答模式。");
+      appendMessage("assistant", "已清空上传文档，当前恢复为站内资料问答模式。");
       refreshStatusText().catch(() => {});
     } catch (error) {
       appendMessage("assistant", `清空失败：${(error as Error).message}`);
@@ -487,6 +468,6 @@ fetchSiteContent()
   .catch((error: Error) => {
     const app = document.getElementById("app");
     if (app) {
-      app.innerHTML = `<div class="shell"><section class="panel"><h1>前端框架初始化失败</h1><p>${escapeHtml(error.message)}</p></section></div>`;
+      app.innerHTML = `<div class="shell"><section class="panel"><h1>前端初始化失败</h1><p>${escapeHtml(error.message)}</p></section></div>`;
     }
   });
