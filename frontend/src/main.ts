@@ -62,6 +62,61 @@ function renderApp(siteContent: SiteContent) {
 
   app.innerHTML = `
     <div class="shell site-shell">
+      <section id="assistant" class="panel assistant-panel assistant-first">
+        <div class="assistant-head">
+          <div>
+            <p class="panel-kicker">Ask Me</p>
+            <h2>和这个网站直接对话</h2>
+            <p class="section-summary">这是这个网站最重要的入口。你可以直接问我的经历、项目、技术栈，也可以上传 PDF 再围绕文档继续追问。</p>
+          </div>
+          <div class="actions">
+            <label class="upload">
+              <input id="resume-upload" type="file" accept=".pdf" />
+              <span>上传文档</span>
+            </label>
+            <button id="clear-upload" type="button">清空上传</button>
+            <button id="clear-session" type="button">清空会话</button>
+          </div>
+        </div>
+
+        <div class="status-group">
+          <span id="knowledge-status" class="status-chip">当前模式：初始化中</span>
+          <span id="session-status" class="status-chip subtle">会话记忆：初始化中</span>
+          <span id="runtime-status" class="status-chip subtle">运行状态：初始化中</span>
+        </div>
+
+        <div class="assistant-layout">
+          <div class="chat-column">
+            <div id="chat-log" class="chat-log">
+              <div class="message assistant">
+                <div class="message-body">你好，你可以直接问我的经历、项目、技术栈，也可以先上传 PDF 再围绕文档继续提问。</div>
+              </div>
+            </div>
+            <form id="chat-form" class="chat-form">
+              <textarea id="chat-input" rows="4" placeholder="例如：你做过哪些 AI 项目？这个问答助手的链路怎么设计？"></textarea>
+              <button id="send-button" type="submit">开始提问</button>
+            </form>
+          </div>
+          <div class="assistant-note-grid">
+            <div class="module-card">
+              <span class="module-index">01</span>
+              <strong>默认模式</strong>
+              <p>未上传文档时，默认围绕我的资料与站点内容回答。</p>
+            </div>
+            <div class="module-card">
+              <span class="module-index">02</span>
+              <strong>上传切换</strong>
+              <p>上传 PDF 后，问答会优先围绕当前文档检索并回答。</p>
+            </div>
+            <div class="module-card">
+              <span class="module-index">03</span>
+              <strong>引用展示</strong>
+              <p>回答会尽量展示来源标签和引用片段，而不是只给结论。</p>
+            </div>
+          </div>
+        </div>
+      </section>
+
       <section class="hero">
         <div class="hero-copy">
           <p class="eyebrow">AI Product Builder</p>
@@ -163,61 +218,6 @@ function renderApp(siteContent: SiteContent) {
         <h2>技术栈</h2>
         <div class="chip-row">
           ${siteContent.skills.map((skill) => `<span class="chip">${escapeHtml(skill)}</span>`).join("")}
-        </div>
-      </section>
-
-      <section id="assistant" class="panel assistant-panel">
-        <div class="assistant-head">
-          <div>
-            <p class="panel-kicker">Ask Me</p>
-            <h2>和这个网站直接对话</h2>
-            <p class="section-summary">你可以直接提问，也可以上传 PDF 再围绕文档继续追问。</p>
-          </div>
-          <div class="actions">
-            <label class="upload">
-              <input id="resume-upload" type="file" accept=".pdf" />
-              <span>上传文档</span>
-            </label>
-            <button id="clear-upload" type="button">清空上传</button>
-            <button id="clear-session" type="button">清空会话</button>
-          </div>
-        </div>
-
-        <div class="status-group">
-          <span id="knowledge-status" class="status-chip">当前模式：初始化中</span>
-          <span id="session-status" class="status-chip subtle">会话记忆：初始化中</span>
-          <span id="runtime-status" class="status-chip subtle">运行状态：初始化中</span>
-        </div>
-
-        <div class="assistant-layout">
-          <div class="chat-column">
-            <div id="chat-log" class="chat-log">
-              <div class="message assistant">
-                <div class="message-body">你好，你可以直接问我的经历、项目、技术栈，也可以先上传 PDF 再围绕文档继续提问。</div>
-              </div>
-            </div>
-            <form id="chat-form" class="chat-form">
-              <textarea id="chat-input" rows="4" placeholder="例如：你做过哪些 AI 项目？这个问答助手的链路怎么设计？"></textarea>
-              <button id="send-button" type="submit">开始提问</button>
-            </form>
-          </div>
-          <div class="assistant-note-grid">
-            <div class="module-card">
-              <span class="module-index">01</span>
-              <strong>默认模式</strong>
-              <p>未上传文档时，默认围绕我的资料与站点内容回答。</p>
-            </div>
-            <div class="module-card">
-              <span class="module-index">02</span>
-              <strong>上传切换</strong>
-              <p>上传 PDF 后，问答会优先围绕当前文档检索并回答。</p>
-            </div>
-            <div class="module-card">
-              <span class="module-index">03</span>
-              <strong>引用展示</strong>
-              <p>回答会尽量展示来源标签和引用片段，而不是只给结论。</p>
-            </div>
-          </div>
         </div>
       </section>
     </div>

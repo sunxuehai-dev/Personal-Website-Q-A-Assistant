@@ -276,6 +276,10 @@ a {
   margin-top: 18px;
 }
 
+.assistant-first {
+  margin-top: 0;
+}
+
 .assistant-head {
   display: flex;
   justify-content: space-between;
