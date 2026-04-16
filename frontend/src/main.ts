@@ -142,6 +142,7 @@ function renderApp(siteContent: SiteContent) {
         <article id="projects" class="panel">
           <p class="panel-kicker">Selected Projects</p>
           <h2>代表项目</h2>
+          <p class="section-note">聚焦已经落地或具备完整链路的项目，强调系统结构、检索质量与真实部署边界。</p>
           <div class="project-grid">
             ${siteContent.projects
               .map(
@@ -160,6 +161,7 @@ function renderApp(siteContent: SiteContent) {
         <article class="panel experience-panel">
           <p class="panel-kicker">Experience</p>
           <h2>经历</h2>
+          <p class="section-note">经历更偏向产品与工程交叉视角，关注方案落地、接口稳定性和持续迭代能力。</p>
           <div class="timeline">
             ${siteContent.experience
               .map(
@@ -187,10 +189,23 @@ function renderApp(siteContent: SiteContent) {
       <section class="skills-section panel">
         <p class="panel-kicker">Technology</p>
         <h2>技术栈</h2>
+        <p class="section-note">围绕 Python、检索增强、前端交互与轻量部署展开，优先选择能稳定上线的组合。</p>
         <div class="chip-row">
           ${siteContent.skills.map((skill) => `<span class="chip">${escapeHtml(skill)}</span>`).join("")}
         </div>
       </section>
+
+      <footer class="site-footer panel">
+        <div class="footer-block">
+          <span class="panel-kicker">Contact</span>
+          <strong>${escapeHtml(siteContent.profile.name)}</strong>
+        </div>
+        <div class="footer-links">
+          <a class="footer-link" href="mailto:${escapeHtml(siteContent.profile.email)}">${escapeHtml(siteContent.profile.email)}</a>
+          <a class="footer-link" href="${csdnUrl}" target="_blank" rel="noreferrer">CSDN 博客</a>
+          <span class="footer-link static">${escapeHtml(siteContent.profile.location)}</span>
+        </div>
+      </footer>
     </div>
   `;
 
