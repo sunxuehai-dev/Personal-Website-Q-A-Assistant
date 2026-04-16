@@ -58,65 +58,84 @@ function renderApp(siteContent: SiteContent) {
     return;
   }
 
-  document.title = `${siteContent.profile.name} | 个人主页`;
+  document.title = `${siteContent.profile.name} | ${siteContent.profile.title}`;
 
   app.innerHTML = `
     <div class="shell site-shell">
       <section class="hero">
-        <div class="hero-main">
-          <p class="eyebrow">Sun Xuehai</p>
+        <div class="hero-copy">
+          <p class="eyebrow">AI Product Builder</p>
           <h1>${escapeHtml(siteContent.profile.name)}</h1>
           <p class="hero-title">${escapeHtml(siteContent.profile.title)}</p>
-          <p class="hero-copy">${escapeHtml(siteContent.profile.tagline)}。我专注于把大模型能力落到真实产品中，包括检索增强、Agent 编排、接口服务化和轻量部署。</p>
+          <p class="hero-copy-text">${escapeHtml(siteContent.profile.tagline)}。我关注的不是孤立的模型能力，而是把检索、接口、前端体验与部署边界组织成完整产品。</p>
           <div class="hero-actions">
-            <a class="hero-link primary" href="#assistant">和我对话</a>
-            <a class="hero-link secondary" href="#projects">查看项目</a>
+            <a class="hero-link primary" href="#assistant">和我直接对话</a>
+            <a class="hero-link secondary" href="#projects">查看代表项目</a>
+          </div>
+          <div class="hero-meta">
+            <span>${escapeHtml(siteContent.profile.location)}</span>
+            <span>${escapeHtml(siteContent.profile.email)}</span>
+            <span>${escapeHtml(siteContent.profile.phone)}</span>
           </div>
         </div>
-        <div class="hero-side">
-          <div class="summary-card">
-            <span class="summary-label">Location</span>
-            <strong>${escapeHtml(siteContent.profile.location)}</strong>
-            <p>${escapeHtml(siteContent.profile.email)}</p>
+
+        <div class="hero-portrait">
+          <div class="portrait-frame">
+            <img class="portrait-image" src="/static/images/profile.jpg" alt="${escapeHtml(siteContent.profile.name)} portrait" />
           </div>
-          <div class="summary-card">
-            <span class="summary-label">Focus</span>
+          <div class="portrait-note">
+            <span class="summary-label">Current Focus</span>
             <strong>RAG / Agent / FastAPI</strong>
-            <p>关注清晰架构、稳定接口和小机器上的可运行性。</p>
+            <p>偏好清晰架构、稳定接口和面向真实部署环境的实现方式。</p>
           </div>
         </div>
       </section>
 
-      <section class="intro-grid">
-        <article class="panel intro-panel">
-          <p class="panel-kicker">About</p>
-          <h2>我在做什么</h2>
+      <section class="overview-row">
+        <article class="panel overview-panel">
+          <p class="panel-kicker">Profile</p>
+          <h2>关于我</h2>
           <div class="paragraphs">
-            <p>我更重视把 AI 能力做成真正可上线、可维护、可交互的产品，而不是停留在模型演示层。</p>
-            <p>这个网站本身就是一个作品：你可以直接读内容，也可以让问答助手围绕我的经历、项目和上传文档进行回答。</p>
+            <p>我在做的是轻量但完整的 AI 应用：它们应该能上线、能维护、能被真实用户使用，而不只是一次性的模型演示。</p>
+            <p>这个网站本身就是一个作品入口。你可以浏览我的经历和项目，也可以直接把它当成问答界面，和内容本身发生交互。</p>
           </div>
         </article>
-        <article class="panel intro-panel">
-          <p class="panel-kicker">Highlights</p>
-          <h2>核心能力</h2>
+
+        <article class="panel overview-panel">
+          <p class="panel-kicker">What I Build</p>
+          <h2>我偏好的系统能力</h2>
           <div class="feature-list">
             <div class="feature-item">
-              <strong>轻量会话记忆</strong>
-              <p>支持连续追问，但不过度引入复杂记忆系统。</p>
+              <strong>结构清楚的问答链路</strong>
+              <p>短期记忆、RAG、引用展示、按需联网，而不是无边界堆能力。</p>
             </div>
             <div class="feature-item">
-              <strong>双知识源问答</strong>
-              <p>既能围绕我的资料回答，也能切换到上传文档。</p>
-            </div>
-            <div class="feature-item">
-              <strong>引用与流式输出</strong>
-              <p>回答过程可见，来源也尽量清楚。</p>
+              <strong>小机器也能稳定运行</strong>
+              <p>优先控制复杂度和资源占用，让产品真的能部署和维护。</p>
             </div>
           </div>
         </article>
       </section>
 
       <section class="content-grid">
+        <article id="projects" class="panel">
+          <p class="panel-kicker">Selected Projects</p>
+          <h2>代表项目</h2>
+          <div class="project-grid">
+            ${siteContent.projects
+              .map(
+                (item) => `
+                  <div class="project-card">
+                    <strong>${escapeHtml(item.name)}</strong>
+                    <span>${escapeHtml(item.stack)}</span>
+                    <p>${escapeHtml(item.description)}</p>
+                  </div>
+                `
+              )
+              .join("")}
+          </div>
+        </article>
+
         <article class="panel">
           <p class="panel-kicker">Experience</p>
           <h2>经历</h2>
@@ -137,28 +156,10 @@ function renderApp(siteContent: SiteContent) {
               .join("")}
           </div>
         </article>
-
-        <article id="projects" class="panel">
-          <p class="panel-kicker">Projects</p>
-          <h2>项目作品</h2>
-          <div class="project-grid">
-            ${siteContent.projects
-            .map(
-              (item) => `
-                <div class="project-card">
-                  <strong>${escapeHtml(item.name)}</strong>
-                  <span>${escapeHtml(item.stack)}</span>
-                  <p>${escapeHtml(item.description)}</p>
-                </div>
-              `
-            )
-            .join("")}
-          </div>
-        </article>
       </section>
 
       <section class="skills-section panel">
-        <p class="panel-kicker">Stack</p>
+        <p class="panel-kicker">Technology</p>
         <h2>技术栈</h2>
         <div class="chip-row">
           ${siteContent.skills.map((skill) => `<span class="chip">${escapeHtml(skill)}</span>`).join("")}
@@ -192,7 +193,7 @@ function renderApp(siteContent: SiteContent) {
           <div class="chat-column">
             <div id="chat-log" class="chat-log">
               <div class="message assistant">
-                <div class="message-body">你好，你可以直接问我的经历、项目和技术栈，也可以先上传 PDF 再继续提问。</div>
+                <div class="message-body">你好，你可以直接问我的经历、项目、技术栈，也可以先上传 PDF 再围绕文档继续提问。</div>
               </div>
             </div>
             <form id="chat-form" class="chat-form">
