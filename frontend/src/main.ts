@@ -53,6 +53,14 @@ function escapeHtml(text: string) {
     .replaceAll("'", "&#39;");
 }
 
+function renderEmptyState() {
+  return `
+    <div class="chat-empty-state">
+      <p>你好，你可以直接问我的项目经验、技术方案、职业经历，也可以上传一份 PDF 继续追问。</p>
+    </div>
+  `;
+}
+
 function renderApp(siteContent: SiteContent) {
   const app = document.getElementById("app");
   if (!app) {
@@ -82,9 +90,7 @@ function renderApp(siteContent: SiteContent) {
           </div>
 
           <div id="chat-log" class="chat-log minimal-chat">
-            <div class="message assistant">
-              <div class="message-body">你好，你可以直接问我的项目经验、技术方案、职业经历，也可以上传一份 PDF 继续追问。</div>
-            </div>
+            ${renderEmptyState()}
           </div>
 
           <form id="chat-form" class="chat-form minimal-form">
@@ -120,10 +126,11 @@ function renderApp(siteContent: SiteContent) {
       </section>
 
       <section class="link-strip">
-        <a class="panel link-card" href="${csdnUrl}" target="_blank" rel="noreferrer">
+        <a class="panel link-card link-card-primary" href="${csdnUrl}" target="_blank" rel="noreferrer">
           <p class="panel-kicker">Writing</p>
           <strong>CSDN 博客</strong>
           <p>查看我的技术文章、项目记录与开发思考。</p>
+          <span class="link-highlight">前往阅读</span>
         </a>
         <article class="panel link-card compact-card">
           <p class="panel-kicker">Build</p>
@@ -200,6 +207,9 @@ function appendMessage(role: "user" | "assistant", content: string) {
   if (!chatLog) {
     return null;
   }
+
+  chatLog.querySelector(".chat-empty-state")?.remove();
+
   const node = document.createElement("div");
   node.className = `message ${role}`;
   node.innerHTML = `<div class="message-body">${escapeHtml(content)}</div>`;
@@ -425,9 +435,8 @@ function bindRuntime() {
       state.lastSessionResetAt = true;
       const chatLog = document.getElementById("chat-log");
       if (chatLog) {
-        chatLog.innerHTML = "";
+        chatLog.innerHTML = renderEmptyState();
       }
-      appendMessage("assistant", "会话已清空，可以重新开始提问。");
       refreshStatusText().catch(() => {});
     } catch (error) {
       appendMessage("assistant", `清空会话失败：${(error as Error).message}`);
