@@ -63,17 +63,6 @@ function renderApp(siteContent: SiteContent) {
   app.innerHTML = `
     <div class="shell site-shell">
       <section id="assistant" class="assistant-stage">
-        <div class="assistant-stage-copy">
-          <p class="panel-kicker">AI Assistant</p>
-          <h1>先问我，再认识我。</h1>
-          <p class="assistant-lead">这是一个嵌在个人网站里的轻量问答助手。你可以直接提问经历、项目、技术栈，也可以上传 PDF，让回答临时围绕文档展开。</p>
-          <div class="assistant-summary">
-            <span>${escapeHtml(siteContent.profile.name)}</span>
-            <span>${escapeHtml(siteContent.profile.title)}</span>
-            <span>${escapeHtml(siteContent.profile.location)}</span>
-          </div>
-        </div>
-
         <div class="assistant-surface">
           <div class="assistant-toolbar">
             <div class="assistant-statusline">
