@@ -49,3 +49,11 @@ def frontend_assets(asset_path: str) -> FileResponse:
         return FileResponse(requested)
 
     return _frontend_index_response()
+
+
+@router.get("/assets/{asset_path:path}")
+def frontend_root_assets(asset_path: str) -> FileResponse:
+    requested = _frontend_dist_file(f"assets/{asset_path}")
+    if requested.is_file():
+        return FileResponse(requested)
+    raise HTTPException(status_code=404, detail="Frontend asset not found.")

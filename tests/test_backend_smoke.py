@@ -378,6 +378,10 @@ def test_home_can_switch_to_frontend_build(tmp_path, monkeypatch):
     assert response.status_code == 200
     assert "frontend-home" in response.text
 
+    asset_response = client.get("/assets/app.js")
+    assert asset_response.status_code == 200
+    assert "frontend home" in asset_response.text
+
 
 def test_chat_stream_returns_sse_events(tmp_path, monkeypatch):
     configure_temp_settings(tmp_path)
