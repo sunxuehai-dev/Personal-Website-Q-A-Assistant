@@ -1,3 +1,5 @@
+ARG BASE_IMAGE=python:3.11-slim
+
 FROM node:20-slim AS frontend-builder
 
 WORKDIR /frontend
@@ -12,8 +14,6 @@ COPY frontend/vite.config.ts ./vite.config.ts
 COPY frontend/src ./src
 RUN npm run build
 
-
-ARG BASE_IMAGE=python:3.11-slim
 FROM ${BASE_IMAGE}
 
 ARG PIP_INDEX_URL=https://pypi.org/simple
