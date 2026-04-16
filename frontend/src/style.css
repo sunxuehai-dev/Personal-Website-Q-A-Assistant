@@ -316,12 +316,13 @@ a {
 
 .editorial-hero {
   display: grid;
-  grid-template-columns: minmax(0, 1.08fr) 292px;
+  grid-template-columns: minmax(0, 1.18fr) 272px;
   gap: 28px;
   margin-top: 18px;
   padding: 30px;
   position: relative;
   overflow: hidden;
+  align-items: start;
 }
 
 .editorial-hero::before {
@@ -377,6 +378,7 @@ a {
 .hero-portrait {
   display: grid;
   gap: 14px;
+  align-content: start;
 }
 
 .portrait-frame {
@@ -384,7 +386,7 @@ a {
   border: 1px solid var(--line);
   border-radius: 18px;
   background: #dbe4ea;
-  aspect-ratio: 4 / 5;
+  aspect-ratio: 4 / 4.85;
 }
 
 .portrait-image {
@@ -410,6 +412,7 @@ a {
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 16px;
   margin-top: 16px;
+  align-items: start;
 }
 
 .panel,
@@ -427,7 +430,7 @@ a {
   display: grid;
   grid-template-columns: 124px minmax(0, 1fr);
   gap: 12px;
-  padding: 8px 0;
+  padding: 6px 0;
 }
 
 .timeline-content p,
