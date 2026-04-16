@@ -111,7 +111,19 @@ function renderApp(siteContent: SiteContent) {
             <span>${escapeHtml(siteContent.profile.email)}</span>
             <span>${escapeHtml(siteContent.profile.phone)}</span>
           </div>
-          <a class="inline-link" href="${csdnUrl}" target="_blank" rel="noreferrer">CSDN 博客</a>
+
+          <div class="hero-notes">
+            <a class="note-card note-card-link" href="${csdnUrl}" target="_blank" rel="noreferrer">
+              <span class="summary-label">Writing</span>
+              <strong>CSDN 博客</strong>
+              <p>查看我的技术文章、项目记录与开发思考。</p>
+            </a>
+            <div class="note-card">
+              <span class="summary-label">Method</span>
+              <strong>偏向可上线的 AI 产品</strong>
+              <p>关注问答链路、检索质量、接口稳定性和小机器上的真实部署表现。</p>
+            </div>
+          </div>
         </div>
 
         <div class="hero-portrait">
@@ -145,7 +157,7 @@ function renderApp(siteContent: SiteContent) {
           </div>
         </article>
 
-        <article class="panel">
+        <article class="panel experience-panel">
           <p class="panel-kicker">Experience</p>
           <h2>经历</h2>
           <div class="timeline">
@@ -163,6 +175,11 @@ function renderApp(siteContent: SiteContent) {
                 `
               )
               .join("")}
+          </div>
+          <div class="experience-summary">
+            <span>AI 应用落地</span>
+            <span>FastAPI / 前后端联动</span>
+            <span>检索与部署实践</span>
           </div>
         </article>
       </section>
