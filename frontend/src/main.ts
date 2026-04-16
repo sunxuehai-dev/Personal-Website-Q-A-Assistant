@@ -12,7 +12,19 @@ import "./style.css";
 import type { ChatReference, ChatResponse, SiteContent } from "./types";
 
 const storageKey = "resume_assistant_frontend_session_id";
-const sessionId = window.localStorage.getItem(storageKey) || crypto.randomUUID();
+
+function createSessionId() {
+  const randomUuid = globalThis.crypto?.randomUUID?.();
+  if (randomUuid) {
+    return randomUuid;
+  }
+
+  const timestamp = Date.now().toString(36);
+  const randomPart = Math.random().toString(36).slice(2, 10);
+  return `session-${timestamp}-${randomPart}`;
+}
+
+const sessionId = window.localStorage.getItem(storageKey) || createSessionId();
 window.localStorage.setItem(storageKey, sessionId);
 
 const state = {
