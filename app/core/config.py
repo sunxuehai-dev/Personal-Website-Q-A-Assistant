@@ -36,6 +36,7 @@ class Settings:
     MAX_UPLOAD_SIZE_MB = int(os.getenv("MAX_UPLOAD_SIZE_MB", "15"))
     LLM_TIMEOUT_SECONDS = int(os.getenv("LLM_TIMEOUT_SECONDS", "180"))
     LLM_MAX_RETRIES = int(os.getenv("LLM_MAX_RETRIES", "3"))
+    SESSION_MEMORY_MAX_TURNS = int(os.getenv("SESSION_MEMORY_MAX_TURNS", "4"))
 
     LLM_TYPE = os.getenv("LLM_TYPE", "qwen").lower()
 
@@ -47,17 +48,21 @@ class Settings:
         "DASHSCOPE_BASE_URL",
         "https://dashscope.aliyuncs.com/compatible-mode/v1",
     )
+    QWEN_CHAT_MODEL = os.getenv("QWEN_CHAT_MODEL", "qwen-plus")
+    QWEN_EMBEDDING_MODEL = os.getenv("QWEN_EMBEDDING_MODEL", "text-embedding-v3")
+    OPENAI_CHAT_MODEL = os.getenv("OPENAI_CHAT_MODEL", "gpt-4o-mini")
+    OPENAI_EMBEDDING_MODEL = os.getenv("OPENAI_EMBEDDING_MODEL", "text-embedding-3-small")
 
     SELF_RESUME_COLLECTION_NAME = os.getenv("SELF_RESUME_COLLECTION_NAME", "self_resume_chunks")
     UPLOAD_COLLECTION_NAME = os.getenv("UPLOAD_COLLECTION_NAME", "uploaded_doc_chunks")
 
     CHAT_MODEL_MAP = {
-        "qwen": "qwen-max",
-        "openai": "gpt-4o-mini",
+        "qwen": QWEN_CHAT_MODEL,
+        "openai": OPENAI_CHAT_MODEL,
     }
     EMBEDDING_MODEL_MAP = {
-        "qwen": "text-embedding-v3",
-        "openai": "text-embedding-3-small",
+        "qwen": QWEN_EMBEDDING_MODEL,
+        "openai": OPENAI_EMBEDDING_MODEL,
     }
 
     CORS_ALLOWED_ORIGINS = _split_env_list(

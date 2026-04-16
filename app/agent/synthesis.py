@@ -9,14 +9,13 @@ from app.core.llm import get_llm_clients
 
 
 ANSWER_SYSTEM_PROMPT = """
-你是个人网站的中文问答助手。
-
+你是个人网站中的中文问答助手。
 回答原则：
-1. 如果提供了本地资料证据，优先用这些证据回答与站长本人、项目、技能、经历、个人网站相关的问题。
-2. 如果本地资料不足，而问题需要外部最新信息，可以直接结合联网信息补充。
+1. 如果提供了本地资料证据，优先基于这些证据回答与站长本人、项目、技能、经历、个人网站相关的问题。
+2. 如果本地资料不足，而问题需要外部最新信息，可以结合联网信息补充。
 3. 不要把外部信息伪装成本地资料。
-4. 回答自然，不要写成机械报告。
-5. 如果信息不足，明确说明边界。
+4. 回答保持自然，不要写成机械报告。
+5. 如果信息不足，要明确说明边界。
 """.strip()
 
 
@@ -30,10 +29,17 @@ class ResponseSynthesizer:
         question: str,
         relevance: str,
         evidences: list[RetrievedEvidence],
+        conversation_context: str = "",
         retry: bool,
     ) -> AnswerDraft:
         if Settings.LLM_TYPE == "qwen":
-            answer = self._synthesize_with_qwen(question, relevance, evidences, retry)
+            answer = self._synthesize_with_qwen(
+                question,
+                relevance,
+                evidences,
+                conversation_context,
+                retry,
+            )
             used_web_search = self._infer_used_web_search(question, relevance, evidences, answer)
             return AnswerDraft(
                 answer=answer,
@@ -43,7 +49,13 @@ class ResponseSynthesizer:
             )
 
         response = self.clients.chat_model.invoke(
-            self._build_messages(question=question, relevance=relevance, evidences=evidences, retry=retry)
+            self._build_messages(
+                question=question,
+                relevance=relevance,
+                evidences=evidences,
+                conversation_context=conversation_context,
+                retry=retry,
+            )
         )
         answer = str(response.content or "").strip() or "当前没有足够信息。"
         return AnswerDraft(
@@ -59,14 +71,27 @@ class ResponseSynthesizer:
         question: str,
         relevance: str,
         evidences: list[RetrievedEvidence],
+        conversation_context: str = "",
         retry: bool,
     ) -> Iterator[str]:
         if Settings.LLM_TYPE == "qwen":
-            yield from self._stream_with_qwen(question, relevance, evidences, retry)
+            yield from self._stream_with_qwen(
+                question,
+                relevance,
+                evidences,
+                conversation_context,
+                retry,
+            )
             return
 
         for chunk in self.clients.chat_model.stream(
-            self._build_messages(question=question, relevance=relevance, evidences=evidences, retry=retry)
+            self._build_messages(
+                question=question,
+                relevance=relevance,
+                evidences=evidences,
+                conversation_context=conversation_context,
+                retry=retry,
+            )
         ):
             content = str(chunk.content or "")
             if not content:
@@ -92,6 +117,7 @@ class ResponseSynthesizer:
         question: str,
         relevance: str,
         evidences: list[RetrievedEvidence],
+        conversation_context: str,
         retry: bool,
     ) -> str:
         completion = self.clients.response_client.chat.completions.create(
@@ -100,6 +126,7 @@ class ResponseSynthesizer:
                 question=question,
                 relevance=relevance,
                 evidences=evidences,
+                conversation_context=conversation_context,
                 retry=retry,
             ),
             extra_body={"enable_search": True},
@@ -111,6 +138,7 @@ class ResponseSynthesizer:
         question: str,
         relevance: str,
         evidences: list[RetrievedEvidence],
+        conversation_context: str,
         retry: bool,
     ) -> Iterator[str]:
         stream = self.clients.response_client.chat.completions.create(
@@ -119,6 +147,7 @@ class ResponseSynthesizer:
                 question=question,
                 relevance=relevance,
                 evidences=evidences,
+                conversation_context=conversation_context,
                 retry=retry,
             ),
             extra_body={"enable_search": True},
@@ -148,6 +177,7 @@ class ResponseSynthesizer:
         question: str,
         relevance: str,
         evidences: list[RetrievedEvidence],
+        conversation_context: str,
         retry: bool,
     ) -> list[dict[str, str]]:
         return [
@@ -158,6 +188,8 @@ class ResponseSynthesizer:
                     f"用户问题：{question}\n\n"
                     f"本地相关度：{relevance}\n"
                     f"是否为重试回答：{'yes' if retry else 'no'}\n\n"
+                    "Recent conversation context:\n"
+                    f"{conversation_context or 'none'}\n\n"
                     "本地资料证据：\n"
                     f"{self._format_evidence(evidences) if evidences else '无'}"
                 ),

@@ -34,8 +34,8 @@
                     <p class="section-tag">System Overview</p>
                     <h1>AI 应用开发工程师控制台</h1>
                     <p class="hero-text">
-                        这里展示的不只是简历内容，而是一套可运行的 AI 应用系统。默认可围绕我的经历、项目与技能进行问答，
-                        上传 PDF 后会切换为面向当前文档的知识问答场景。
+                        这里展示的不只是简历内容，而是一套可运行的 AI 应用系统。
+                        默认可以围绕我的经历、项目与技能进行问答，上传 PDF 后会切换到当前文档的临时知识问答场景。
                     </p>
                     <div class="hero-actions">
                         <a class="action-button primary" href="#assistant">进入问答</a>
@@ -51,7 +51,7 @@
                     <div class="status-tile">
                         <p class="tile-label">Focus</p>
                         <strong>RAG / Agent / FastAPI</strong>
-                        <span>面向可部署与可演示的小型 AI 系统</span>
+                        <span>面向可部署、可演示、可迭代的小型 AI 系统</span>
                     </div>
                     <div class="status-tile">
                         <p class="tile-label">Contact</p>
@@ -86,13 +86,13 @@
                         <span class="panel-badge">Core</span>
                     </div>
                     <p class="summary-text">
-                        我的重点不只是模型效果，而是把检索、路由、接口、部署与前端体验组织成一个整体。
-                        这个项目本身就是对“轻量 AI 产品工程化”的持续打磨。
+                        我的重点不只是模型效果，而是把检索、路由、接口、部署与前端体验组织成一个完整系统。
+                        这个项目本身，就是我对“轻量 AI 产品工程化”的持续打磨。
                     </p>
                     <div class="signal-grid">
                         <div>
                             <strong>Resume QA</strong>
-                            <span>个人资料场景问答</span>
+                            <span>围绕个人资料的知识问答</span>
                         </div>
                         <div>
                             <strong>PDF QA</strong>
@@ -100,7 +100,7 @@
                         </div>
                         <div>
                             <strong>Streaming</strong>
-                            <span>前端渐进输出反馈</span>
+                            <span>前端逐步输出反馈</span>
                         </div>
                     </div>
                 </article>
@@ -166,7 +166,10 @@
                         <p class="section-tag">Assistant Console</p>
                         <h3>问答助手</h3>
                     </div>
-                    <p class="assistant-note">默认回答与我个人经历、项目和技能相关的问题。上传 PDF 后自动切换到文档问答模式。</p>
+                    <p class="assistant-note">
+                        默认回答与我的个人经历、项目和技能相关的问题。
+                        上传 PDF 后会自动切换到文档问答模式，并保留当前浏览器会话的短期记忆。
+                    </p>
                 </div>
 
                 <div class="assistant-layout">
@@ -174,6 +177,8 @@
                         <div class="sidebar-card">
                             <p class="tile-label">Knowledge Mode</p>
                             <span id="knowledge-status" class="status-pill">当前模式：个人简历问答</span>
+                            <span id="session-status" class="status-pill subtle">会话记忆：当前浏览器会话已启用</span>
+                            <span id="runtime-status" class="status-pill subtle">运行状态：空闲</span>
                         </div>
                         <div class="sidebar-card">
                             <p class="tile-label">Document Input</p>
@@ -182,12 +187,13 @@
                                 <span>上传 PDF</span>
                             </label>
                             <button id="clear-upload" type="button" class="ghost-action">清空上传</button>
+                            <button id="clear-session" type="button" class="ghost-action">清空会话</button>
                         </div>
                         <div class="sidebar-card">
                             <p class="tile-label">Quick Commands</p>
                             <div class="suggestion-row">
-                                <button type="button" class="suggestion-chip" data-question="请介绍孙雪海的工作经历。">工作经历</button>
-                                <button type="button" class="suggestion-chip" data-question="请总结我的技术栈。">技术栈</button>
+                                <button type="button" class="suggestion-chip" data-question="请介绍一下孙雪海的工作经历。">工作经历</button>
+                                <button type="button" class="suggestion-chip" data-question="请总结一下我的技术栈。">技术栈</button>
                                 <button type="button" class="suggestion-chip" data-question="我做过哪些 AI 项目？">AI 项目</button>
                             </div>
                         </div>
@@ -202,7 +208,7 @@
 
                         <form id="chat-form" class="chat-form">
                             <textarea id="chat-input" rows="3" placeholder="例如：请介绍孙雪海的工作经历"></textarea>
-                            <button type="submit" class="send-button">发送</button>
+                            <button id="send-button" type="submit" class="send-button">发送</button>
                         </form>
                     </div>
                 </div>

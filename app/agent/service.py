@@ -13,6 +13,7 @@ from app.agent.rewrite import RetryRewriter
 from app.agent.router import LocalRelevanceJudge
 from app.agent.synthesis import ResponseSynthesizer
 from app.core.config import Settings
+from app.memory.service import session_memory_service
 from app.retrieval.hybrid import merge_evidences
 from app.retrieval.keyword import KeywordRetriever
 from app.retrieval.retriever import ResumeRetriever, UploadedDocumentRetriever
@@ -33,8 +34,14 @@ class ResumeQAService:
         self.answer_evaluator = AnswerEvaluator()
         self.retry_rewriter = RetryRewriter()
 
-    def ask(self, question: str, use_uploaded_docs: bool = False) -> QAResponse:
-        result = self._run_pipeline(question, use_uploaded_docs=use_uploaded_docs)
+    def ask(
+        self,
+        question: str,
+        use_uploaded_docs: bool = False,
+        session_id: str | None = None,
+    ) -> QAResponse:
+        result = self._run_pipeline(question, use_uploaded_docs=use_uploaded_docs, session_id=session_id)
+        self._record_turn(session_id, question, result["answer"])
         return QAResponse(
             answer=result["answer"],
             references=result["references"],
@@ -44,23 +51,42 @@ class ResumeQAService:
             retried=result["retried"],
         )
 
-    def ask_stream(self, question: str, use_uploaded_docs: bool = False) -> Iterator[str]:
+    def ask_stream(
+        self,
+        question: str,
+        use_uploaded_docs: bool = False,
+        session_id: str | None = None,
+    ) -> Iterator[str]:
+        recent_messages = session_memory_service.get_recent_messages(session_id)
+        conversation_context = session_memory_service.format_recent_context(recent_messages)
+        effective_question = session_memory_service.build_contextual_question(question, recent_messages)
         has_uploaded_docs = self._has_uploaded_docs(use_uploaded_docs)
-        relevance = self.relevance_judge.judge(question, has_uploaded_docs=has_uploaded_docs)
+        relevance = self.relevance_judge.judge(effective_question, has_uploaded_docs=has_uploaded_docs)
         retrieval = self._retrieve(
-            question,
+            effective_question,
             relevance=relevance.relevance,
             use_uploaded_docs=use_uploaded_docs,
             has_uploaded_docs=has_uploaded_docs,
             retry=False,
         )
+
+        answer_parts: list[str] = []
         for event in self.response_synthesizer.stream(
             question=question,
             relevance=relevance.relevance,
             evidences=retrieval.evidences,
+            conversation_context=conversation_context,
             retry=False,
         ):
+            payload = self._decode_stream_event(event)
+            if payload.get("type") == "token":
+                answer_parts.append(str(payload.get("content", "")))
+            elif payload.get("type") == "replace":
+                answer_parts = [str(payload.get("content", ""))]
             yield event
+
+        final_answer = "".join(answer_parts).strip()
+        self._record_turn(session_id, question, final_answer)
         yield self._encode_stream_event(
             "meta",
             {
@@ -75,12 +101,15 @@ class ResumeQAService:
         )
         yield self._encode_stream_event("done", {})
 
-    def _run_pipeline(self, question: str, *, use_uploaded_docs: bool):
+    def _run_pipeline(self, question: str, *, use_uploaded_docs: bool, session_id: str | None = None):
+        recent_messages = session_memory_service.get_recent_messages(session_id)
+        conversation_context = session_memory_service.format_recent_context(recent_messages)
+        effective_question = session_memory_service.build_contextual_question(question, recent_messages)
         has_uploaded_docs = self._has_uploaded_docs(use_uploaded_docs)
-        relevance = self.relevance_judge.judge(question, has_uploaded_docs=has_uploaded_docs)
+        relevance = self.relevance_judge.judge(effective_question, has_uploaded_docs=has_uploaded_docs)
 
         retrieval = self._retrieve(
-            question,
+            effective_question,
             relevance=relevance.relevance,
             use_uploaded_docs=use_uploaded_docs,
             has_uploaded_docs=has_uploaded_docs,
@@ -90,6 +119,7 @@ class ResumeQAService:
             question=question,
             relevance=relevance.relevance,
             evidences=retrieval.evidences,
+            conversation_context=conversation_context,
             retry=False,
         )
         evaluation = self.answer_evaluator.evaluate(
@@ -106,7 +136,7 @@ class ResumeQAService:
 
         if evaluation.decision == "retry":
             retried = True
-            rewritten_question = self.retry_rewriter.rewrite(question, relevance=relevance.relevance)
+            rewritten_question = self.retry_rewriter.rewrite(effective_question, relevance=relevance.relevance)
             final_retrieval = self._retrieve(
                 rewritten_question,
                 relevance=relevance.relevance,
@@ -118,6 +148,7 @@ class ResumeQAService:
                 question=question,
                 relevance=relevance.relevance,
                 evidences=final_retrieval.evidences,
+                conversation_context=conversation_context,
                 retry=True,
             )
 
@@ -244,3 +275,16 @@ class ResumeQAService:
 
     def _encode_stream_event(self, event_type: str, payload: dict) -> str:
         return f"data: {json.dumps({'type': event_type, **payload}, ensure_ascii=False)}\n\n"
+
+    def _decode_stream_event(self, event: str) -> dict:
+        line = event.strip()
+        if not line.startswith("data:"):
+            return {}
+        try:
+            return json.loads(line[5:].strip())
+        except json.JSONDecodeError:
+            return {}
+
+    def _record_turn(self, session_id: str | None, question: str, answer: str) -> None:
+        session_memory_service.append_message(session_id, "user", question)
+        session_memory_service.append_message(session_id, "assistant", answer)

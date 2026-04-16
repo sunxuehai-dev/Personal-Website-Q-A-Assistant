@@ -10,6 +10,8 @@ from app.agent import service as agent_service
 from app.api import routes as api_routes
 from app.core.config import Settings
 from app.main import create_app
+from app.memory.service import session_memory_service
+from app.runtime.guards import BusyError
 from app.uploads.service import UploadKnowledgeBaseService
 from scripts import ingest_self_resume
 
@@ -51,6 +53,8 @@ class FakeChatModel:
             return FakeMessage(self._json_response(messages))
 
         payload = messages[1]["content"]
+        if "Recent conversation context:" in payload and "部署方式" in payload:
+            return FakeMessage("基于刚才的会话上下文，这个项目当前使用 Docker Compose 和部署脚本完成服务更新。")
         if "本地资料证据" in payload and "无" not in payload:
             return FakeMessage("根据本地资料，孙雪海有 AI 应用开发、RAG 和个人网站相关项目经验。")
         return FakeMessage("这是通用回答。")
@@ -65,7 +69,7 @@ class FakeChatModel:
         if "本地资料是否有助于回答这个问题" in prompt:
             if "你的个人网站是什么" in prompt:
                 payload = {"relevance": "high", "reason": "asking personal profile info"}
-            elif "现在主流的 agent 框架有哪些" in prompt:
+            elif "现在主流的agent框架有哪些" in prompt:
                 payload = {"relevance": "low", "reason": "external latest topic"}
             else:
                 payload = {"relevance": "medium", "reason": "project topic may benefit from local context"}
@@ -95,15 +99,23 @@ class FakeResponseClient:
         del args
         messages = kwargs.get("messages", [])
         payload = messages[1]["content"] if len(messages) > 1 else ""
+
         if kwargs.get("stream") is True:
-            if "现在主流的 agent 框架有哪些" in payload:
+            if "Recent conversation context:" in payload and "部署方式" in payload:
+                chunks = ["基于刚才的会话上下文，", "这个项目当前使用 Docker Compose 和部署脚本完成服务更新。"]
+                return iter(FakeChatCompletionChunk(chunk) for chunk in chunks)
+            if "现在主流的agent框架有哪些" in payload:
                 chunks = ["当前主流 Agent 框架包括", " LangGraph、AutoGen、CrewAI 等。"]
-            elif "无" in payload:
+                return iter(FakeChatCompletionChunk(chunk) for chunk in chunks)
+            if "无" in payload:
                 chunks = ["我目前没有可靠的本地资料证据，", "但可以先给你一个通用回答。"]
-            else:
-                chunks = ["根据本地资料，", "孙雪海有 AI 应用开发、RAG 和个人网站相关项目经验。"]
+                return iter(FakeChatCompletionChunk(chunk) for chunk in chunks)
+            chunks = ["根据本地资料，", "孙雪海有 AI 应用开发、RAG 和个人网站相关项目经验。"]
             return iter(FakeChatCompletionChunk(chunk) for chunk in chunks)
-        if "现在主流的 agent 框架有哪些" in payload:
+
+        if "Recent conversation context:" in payload and "部署方式" in payload:
+            return FakeChatCompletionResponse("基于刚才的会话上下文，这个项目当前使用 Docker Compose 和部署脚本完成服务更新。")
+        if "现在主流的agent框架有哪些" in payload:
             return FakeChatCompletionResponse("当前主流 Agent 框架包括 LangGraph、AutoGen、CrewAI 等。")
         if "无" in payload:
             return FakeChatCompletionResponse("我目前没有可靠的本地资料证据，但可以先给你一个通用回答。")
@@ -202,6 +214,7 @@ def configure_temp_settings(tmp_path: Path) -> None:
     Settings.CHROMA_DIR = Settings.DATA_DIR / "chroma"
     Settings.SELF_RESUME_CHROMA_DIR = Settings.CHROMA_DIR / "self_resume"
     Settings.UPLOAD_CHROMA_DIR = Settings.CHROMA_DIR / "uploaded_docs"
+    Settings.SESSION_MEMORY_MAX_TURNS = 4
     Settings.ensure_directories()
 
 
@@ -215,6 +228,7 @@ def patch_fake_llm(monkeypatch):
 
 def test_upload_reset_keeps_chroma_files_but_clears_upload_state(tmp_path, monkeypatch):
     configure_temp_settings(tmp_path)
+    session_memory_service._sessions.clear()
 
     uploaded_pdf = Settings.UPLOAD_DIR / "uploaded.pdf"
     uploaded_pdf.write_bytes(b"%PDF-1.4 mock")
@@ -233,6 +247,7 @@ def test_upload_reset_keeps_chroma_files_but_clears_upload_state(tmp_path, monke
 
 def test_api_smoke_without_network(tmp_path, monkeypatch):
     configure_temp_settings(tmp_path)
+    session_memory_service._sessions.clear()
 
     resume_pdf = Settings.SELF_RESUME_DIR / "self_resume.pdf"
     resume_pdf.write_bytes(b"%PDF-1.4 self")
@@ -265,10 +280,16 @@ def test_api_smoke_without_network(tmp_path, monkeypatch):
     health_response = client.get("/health")
     assert health_response.status_code == 200
     assert health_response.json()["status"] == "ok"
+    assert "runtime_status" in health_response.json()
 
     ready_response = client.get("/ready")
     assert ready_response.status_code == 200
     assert ready_response.json()["status"] == "ready"
+
+    runtime_response = client.get("/runtime_status")
+    assert runtime_response.status_code == 200
+    assert runtime_response.json()["chat"]["max_concurrent"] == 2
+    assert runtime_response.json()["upload"]["busy"] is False
 
     local_response = client.post(
         "/chat",
@@ -280,7 +301,7 @@ def test_api_smoke_without_network(tmp_path, monkeypatch):
 
     web_response = client.post(
         "/chat",
-        json={"question": "现在主流的 agent 框架有哪些", "use_uploaded_docs": False},
+        json={"question": "现在主流的agent框架有哪些", "use_uploaded_docs": False},
     )
     assert web_response.status_code == 200
     assert web_response.json()["used_web_search"] is True
@@ -307,6 +328,7 @@ def test_api_smoke_without_network(tmp_path, monkeypatch):
 
 def test_chat_stream_returns_sse_events(tmp_path, monkeypatch):
     configure_temp_settings(tmp_path)
+    session_memory_service._sessions.clear()
 
     resume_pdf = Settings.SELF_RESUME_DIR / "self_resume.pdf"
     resume_pdf.write_bytes(b"%PDF-1.4 self")
@@ -344,6 +366,7 @@ def test_chat_stream_returns_sse_events(tmp_path, monkeypatch):
 
 def test_retry_can_expand_local_retrieval(tmp_path, monkeypatch):
     configure_temp_settings(tmp_path)
+    session_memory_service._sessions.clear()
 
     resume_pdf = Settings.SELF_RESUME_DIR / "self_resume.pdf"
     resume_pdf.write_bytes(b"%PDF-1.4 self")
@@ -363,6 +386,7 @@ def test_retry_can_expand_local_retrieval(tmp_path, monkeypatch):
 
 def test_upload_rejects_oversized_pdf(tmp_path, monkeypatch):
     configure_temp_settings(tmp_path)
+    session_memory_service._sessions.clear()
     Settings.MAX_UPLOAD_SIZE_MB = 1
 
     monkeypatch.setattr("app.uploads.service.chromadb.PersistentClient", FakePersistentClient)
@@ -382,6 +406,7 @@ def test_upload_rejects_oversized_pdf(tmp_path, monkeypatch):
 
 def test_ingest_self_resume_resets_pdf_and_chroma_directories(tmp_path):
     configure_temp_settings(tmp_path)
+    session_memory_service._sessions.clear()
 
     old_pdf = Settings.SELF_RESUME_DIR / "old_resume.pdf"
     old_pdf.write_bytes(b"%PDF-1.4 old")
@@ -409,3 +434,106 @@ def test_ingest_self_resume_requires_pdf_path_argument():
         assert exc.code == 2
     else:
         raise AssertionError("parse_args should require --pdf-path")
+
+
+def test_session_memory_supports_follow_up_and_reset(tmp_path, monkeypatch):
+    configure_temp_settings(tmp_path)
+    session_memory_service._sessions.clear()
+
+    resume_pdf = Settings.SELF_RESUME_DIR / "self_resume.pdf"
+    resume_pdf.write_bytes(b"%PDF-1.4 self")
+    STORE["self"] = [
+        Document(
+            page_content="Resume Assistant 当前使用 Docker Compose 和部署脚本进行服务重建。",
+            metadata={
+                "source_file": resume_pdf.name,
+                "page": 1,
+                "page_label": "1",
+                "doc_type": "self_resume",
+            },
+        )
+    ]
+    STORE["upload"] = []
+
+    patch_fake_llm(monkeypatch)
+    Settings.DASHSCOPE_API_KEY = "test-key"
+    monkeypatch.setattr(agent_service, "ResumeRetriever", FakeResumeRetriever)
+    monkeypatch.setattr(agent_service, "UploadedDocumentRetriever", FakeUploadedRetriever)
+    monkeypatch.setattr(agent_service, "KeywordRetriever", FakeKeywordRetriever)
+
+    client = TestClient(create_app())
+    session_id = "session-follow-up"
+
+    first_response = client.post(
+        "/chat",
+        json={
+            "question": "先介绍一下这个项目",
+            "use_uploaded_docs": False,
+            "session_id": session_id,
+        },
+    )
+    assert first_response.status_code == 200
+
+    second_response = client.post(
+        "/chat",
+        json={
+            "question": "那部署方式呢",
+            "use_uploaded_docs": False,
+            "session_id": session_id,
+        },
+    )
+    assert second_response.status_code == 200
+    assert "Docker Compose" in second_response.json()["answer"]
+
+    reset_response = client.delete(f"/session/{session_id}")
+    assert reset_response.status_code == 200
+    assert reset_response.json()["session_id"] == session_id
+    assert reset_response.json()["cleared_message_count"] >= 2
+
+
+def test_chat_returns_429_when_capacity_is_full(tmp_path, monkeypatch):
+    configure_temp_settings(tmp_path)
+    session_memory_service._sessions.clear()
+
+    resume_pdf = Settings.SELF_RESUME_DIR / "self_resume.pdf"
+    resume_pdf.write_bytes(b"%PDF-1.4 self")
+    patch_fake_llm(monkeypatch)
+
+    class BusyChatGuard:
+        def acquire(self):
+            raise BusyError("Chat capacity is temporarily full. Please retry shortly.")
+
+    monkeypatch.setattr(api_routes, "chat_guard", BusyChatGuard())
+
+    client = TestClient(create_app())
+    response = client.post(
+        "/chat",
+        json={"question": "你的个人网站是什么", "use_uploaded_docs": False},
+    )
+
+    assert response.status_code == 429
+    assert "capacity" in response.json()["detail"].lower()
+    assert response.json()["error"]["code"] == "chat_capacity_full"
+    assert response.json()["error"]["retryable"] is True
+
+
+def test_upload_returns_409_when_ingestion_is_busy(tmp_path, monkeypatch):
+    configure_temp_settings(tmp_path)
+    session_memory_service._sessions.clear()
+
+    class BusyUploadGuard:
+        def acquire(self):
+            raise BusyError("Another upload ingestion is already in progress.")
+
+    monkeypatch.setattr(api_routes, "upload_guard", BusyUploadGuard())
+
+    client = TestClient(create_app())
+    response = client.post(
+        "/upload_resume",
+        files={"file": ("uploaded.pdf", b"%PDF-1.4 uploaded", "application/pdf")},
+    )
+
+    assert response.status_code == 409
+    assert "already in progress" in response.json()["detail"].lower()
+    assert response.json()["error"]["code"] == "upload_busy"
+    assert response.json()["error"]["retryable"] is True

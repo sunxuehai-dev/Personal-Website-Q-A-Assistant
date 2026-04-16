@@ -437,6 +437,28 @@ input {
     line-height: 1.6;
 }
 
+.sidebar-card .status-pill + .status-pill {
+    margin-top: 10px;
+}
+
+.status-pill.subtle {
+    background: rgba(255, 255, 255, 0.03);
+    border-color: var(--line);
+    color: var(--muted);
+}
+
+.status-pill.busy {
+    background: rgba(255, 196, 77, 0.1);
+    border-color: rgba(255, 196, 77, 0.32);
+    color: #ffd27d;
+}
+
+.status-pill.ready {
+    background: rgba(76, 255, 178, 0.08);
+    border-color: rgba(76, 255, 178, 0.28);
+    color: var(--green);
+}
+
 .upload-chip {
     position: relative;
     display: inline-flex;
@@ -468,6 +490,17 @@ input {
     background: transparent;
     color: var(--muted);
     cursor: pointer;
+}
+
+.ghost-action:disabled,
+.send-button:disabled,
+.upload-chip.is-disabled {
+    opacity: 0.58;
+    cursor: not-allowed;
+}
+
+.upload-chip.is-disabled input {
+    pointer-events: none;
 }
 
 .suggestion-row {
@@ -513,6 +546,10 @@ input {
     white-space: pre-wrap;
 }
 
+.message-body {
+    white-space: pre-wrap;
+}
+
 .message.user {
     align-self: end;
     background: linear-gradient(135deg, rgba(48, 213, 255, 0.2), rgba(48, 213, 255, 0.08));
@@ -524,6 +561,60 @@ input {
     align-self: start;
     background: rgba(12, 27, 37, 0.92);
     border: 1px solid var(--line);
+}
+
+.message-meta {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid rgba(78, 138, 173, 0.24);
+}
+
+.meta-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.meta-chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 5px 10px;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    background: rgba(255, 255, 255, 0.03);
+    color: var(--muted);
+    font-size: 0.82rem;
+    line-height: 1.4;
+}
+
+.reference-list {
+    display: grid;
+    gap: 10px;
+    margin-top: 12px;
+}
+
+.reference-card {
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: rgba(6, 16, 23, 0.72);
+    border: 1px solid rgba(78, 138, 173, 0.2);
+}
+
+.reference-head {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 6px;
+    color: var(--cyan);
+    font-size: 0.82rem;
+}
+
+.reference-snippet {
+    color: var(--muted);
+    font-size: 0.92rem;
+    line-height: 1.7;
+    white-space: pre-wrap;
 }
 
 .chat-form {
