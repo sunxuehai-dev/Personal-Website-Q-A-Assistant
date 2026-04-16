@@ -58,93 +58,98 @@ function renderApp(siteContent: SiteContent) {
     return;
   }
 
+  const featuredProject = siteContent.projects[0];
+  const supportingProjects = siteContent.projects.slice(1);
+
   document.title = `${siteContent.profile.name} | AI 控制台`;
 
   app.innerHTML = `
-    <div class="shell dashboard-shell">
-      <section class="hero hero-console">
+    <div class="shell brand-shell">
+      <section class="hero brand-hero">
         <div class="hero-copy">
-          <p class="eyebrow">Personal AI Product / Live Site</p>
-          <h1>把个人经历、项目和知识库做成一个能直接对话的网站</h1>
-          <p class="subtitle">${escapeHtml(siteContent.profile.name)} · ${escapeHtml(siteContent.profile.title)}</p>
-          <p class="copy">${escapeHtml(siteContent.profile.tagline)}。这不是一张静态简历，而是一套真正上线运行的轻量 AI 产品：前端独立构建、后端 API 化，支持记忆、RAG、上传文档问答和按需联网补充。</p>
-          <div class="hero-tags">
-            <span class="hero-tag">正式首页已切换</span>
-            <span class="hero-tag">FastAPI + Vite</span>
-            <span class="hero-tag">2 核 2G 可运行</span>
+          <p class="eyebrow">Sun Xuehai / AI Application Engineer</p>
+          <h1>把 AI 能力做成真正能上线、能使用、能维护的产品。</h1>
+          <p class="subtitle">${escapeHtml(siteContent.profile.name)} · ${escapeHtml(siteContent.profile.title)} · ${escapeHtml(siteContent.profile.location)}</p>
+          <p class="copy">${escapeHtml(siteContent.profile.tagline)}。我更关注把检索、模型、接口、前端和部署组织成完整产品，而不只是做一个只能演示的模型能力页面。</p>
+          <div class="hero-actions">
+            <a class="hero-link primary" href="#assistant">直接和我对话</a>
+            <a class="hero-link secondary" href="#projects">看项目作品</a>
           </div>
         </div>
-        <div class="hero-signal">
-          <div class="signal-card primary">
-            <span class="signal-label">Current Product</span>
+        <div class="hero-aside">
+          <div class="intro-card lead">
+            <span class="intro-label">Currently Building</span>
             <strong>Resume Assistant</strong>
-            <p>一个嵌入个人网站的轻量问答助手，可以回答关于我本人、项目经历和上传文档的问题。</p>
+            <p>一个嵌入个人网站的问答助手。它既是作品，也是我对轻量 AI 产品工程化的实际回答。</p>
           </div>
-          <div class="signal-grid">
-            <div class="signal-card">
-              <span class="signal-label">Architecture</span>
-              <strong>API First</strong>
-              <p>前后端边界清晰，接口稳定，页面内容由后端 API 驱动。</p>
+          <div class="intro-grid">
+            <div class="intro-card">
+              <span class="intro-label">Focus</span>
+              <strong>RAG / Agent / API</strong>
+              <p>围绕真实业务链路组织模型能力，而不是把模型孤立出来。</p>
             </div>
-            <div class="signal-card">
-              <span class="signal-label">Deployment</span>
-              <strong>Single Server</strong>
-              <p>保留单体服务与轻量部署，优先稳定交付而不是复杂扩展。</p>
-            </div>
-            <div class="signal-card">
-              <span class="signal-label">Location</span>
-              <strong>${escapeHtml(siteContent.profile.location)}</strong>
-              <p>${escapeHtml(siteContent.profile.email)}</p>
-            </div>
-            <div class="signal-card">
-              <span class="signal-label">Interaction</span>
-              <strong>Stream + References</strong>
-              <p>回答流式输出，并展示来源标签和引用片段。</p>
+            <div class="intro-card">
+              <span class="intro-label">Deploy</span>
+              <strong>2 核 2G 优先</strong>
+              <p>先把东西做轻、做稳，再谈复杂扩展。</p>
             </div>
           </div>
         </div>
       </section>
 
-      <section class="overview-grid">
-        <article class="panel control-panel">
+      <section class="story-grid">
+        <article class="panel story-panel">
           <div class="panel-head">
             <div>
-              <p class="panel-kicker">System Modules</p>
-              <h2>这个站点能做什么</h2>
+              <p class="panel-kicker">About</p>
+              <h2>我在做什么</h2>
             </div>
-            <span class="section-note">不是大而全，但足够完整</span>
           </div>
-          <div class="module-grid">
-            <div class="module-card">
-              <span class="module-index">01</span>
-              <strong>短期记忆</strong>
-              <p>浏览器会话级记忆，让连续追问能继承上下文，又不把系统做得过重。</p>
-            </div>
-            <div class="module-card">
-              <span class="module-index">02</span>
-              <strong>双知识源 RAG</strong>
-              <p>默认围绕个人简历问答，上传 PDF 后自动切到临时知识库模式。</p>
-            </div>
-            <div class="module-card">
-              <span class="module-index">03</span>
-              <strong>联网补充</strong>
-              <p>本地资料不够时，再按需联网补充，而不是把所有问题都丢给搜索。</p>
-            </div>
-            <div class="module-card">
-              <span class="module-index">04</span>
-              <strong>运行时保护</strong>
-              <p>针对小规格服务器做了上传互斥和聊天限流，保证线上环境不容易拖垮。</p>
-            </div>
+          <div class="manifesto">
+            <p>我做的不是“模型演示页”，而是<strong>可以被真正使用的 AI 应用</strong>。这意味着：前后端边界要清楚，接口要稳定，知识库要可维护，线上资源约束要被认真对待。</p>
+            <p>这个网站本身就是作品的一部分。它把个人经历、项目案例和问答助手合在一起，让访问者可以直接和内容交互，而不是只看一页静态介绍。</p>
+          </div>
+          <div class="chip-row">
+            <span class="chip">产品化思维</span>
+            <span class="chip">后端服务化</span>
+            <span class="chip">RAG 落地</span>
+            <span class="chip">轻量部署</span>
           </div>
         </article>
 
-        <article class="panel control-panel">
+        <article class="panel featured-panel">
           <div class="panel-head">
             <div>
-              <p class="panel-kicker">Experience Graph</p>
-              <h2>工程背景与项目脉络</h2>
+              <p class="panel-kicker">Featured Work</p>
+              <h2>${escapeHtml(featuredProject?.name || "代表项目")}</h2>
             </div>
-            <span class="section-note">站点内容由统一内容接口加载</span>
+            <span class="section-note">${escapeHtml(featuredProject?.stack || "")}</span>
+          </div>
+          <p class="featured-copy">${escapeHtml(featuredProject?.description || "")}</p>
+          <div class="metric-grid">
+            <div class="metric-card">
+              <span>对话体验</span>
+              <strong>Memory + RAG</strong>
+            </div>
+            <div class="metric-card">
+              <span>交付方式</span>
+              <strong>Single Service</strong>
+            </div>
+            <div class="metric-card">
+              <span>使用方式</span>
+              <strong>Ask + Upload</strong>
+            </div>
+          </div>
+        </article>
+      </section>
+
+      <section class="experience-layout">
+        <article class="panel experience-panel">
+          <div class="panel-head">
+            <div>
+              <p class="panel-kicker">Experience</p>
+              <h2>经历</h2>
+            </div>
           </div>
           <div class="timeline">
             ${siteContent.experience
@@ -162,29 +167,107 @@ function renderApp(siteContent: SiteContent) {
               )
               .join("")}
           </div>
-          <div class="project-grid">
-            ${siteContent.projects
-              .map(
-                (item) => `
-                  <div class="project-card">
-                    <strong>${escapeHtml(item.name)}</strong>
-                    <span>${escapeHtml(item.stack)}</span>
-                    <p>${escapeHtml(item.description)}</p>
-                  </div>
-                `
-              )
-              .join("")}
-          </div>
         </article>
+
+        <aside class="panel principle-panel">
+          <div class="panel-head">
+            <div>
+              <p class="panel-kicker">Approach</p>
+              <h2>做事方式</h2>
+            </div>
+          </div>
+          <div class="notes-list">
+            <div class="note-card">
+              <strong>先把东西做通</strong>
+              <p>我更重视真实链路跑通，再在这个基础上打磨交互、结构和边界。</p>
+            </div>
+            <div class="note-card">
+              <strong>优先轻量可维护</strong>
+              <p>在小规格服务器上做产品，意味着每个模块都要有边界意识。</p>
+            </div>
+            <div class="note-card">
+              <strong>避免空转式复杂度</strong>
+              <p>不是所有系统都需要大而重的架构，合适比前沿名词更重要。</p>
+            </div>
+          </div>
+        </aside>
       </section>
 
-      <section class="workspace-grid">
-        <article class="panel assistant assistant-panel">
+      <section id="projects" class="panel projects-panel">
+        <div class="panel-head">
+          <div>
+            <p class="panel-kicker">Projects</p>
+            <h2>项目作品</h2>
+          </div>
+          <span class="section-note">从视觉、算法到大模型应用</span>
+        </div>
+        <div class="project-grid wide">
+          ${supportingProjects
+            .map(
+              (item) => `
+                <div class="project-card">
+                  <strong>${escapeHtml(item.name)}</strong>
+                  <span>${escapeHtml(item.stack)}</span>
+                  <p>${escapeHtml(item.description)}</p>
+                </div>
+              `
+            )
+            .join("")}
+        </div>
+      </section>
+
+      <section class="capability-layout">
+        <article class="panel capability-panel">
+          <div class="panel-head">
+            <div>
+              <p class="panel-kicker">Capabilities</p>
+              <h2>这个网站内置了什么能力</h2>
+            </div>
+            <span class="section-note">问答助手不是摆设，而是可用功能</span>
+          </div>
+          <div class="module-grid brand">
+            <div class="module-card">
+              <span class="module-index">01</span>
+              <strong>短期记忆</strong>
+              <p>浏览器会话级记忆，让追问保持连贯。</p>
+            </div>
+            <div class="module-card">
+              <span class="module-index">02</span>
+              <strong>双知识源 RAG</strong>
+              <p>既能问我本人，也能问你上传的文档。</p>
+            </div>
+            <div class="module-card">
+              <span class="module-index">03</span>
+              <strong>引用与来源</strong>
+              <p>回答不是黑盒文本，会明确展示引用片段和来源标识。</p>
+            </div>
+            <div class="module-card">
+              <span class="module-index">04</span>
+              <strong>轻量运行保护</strong>
+              <p>围绕真实服务器资源边界做了并发与上传约束。</p>
+            </div>
+          </div>
+        </article>
+
+        <aside class="panel stack-panel">
+          <div class="panel-head">
+            <div>
+              <p class="panel-kicker">Stack</p>
+              <h2>技术栈</h2>
+            </div>
+          </div>
+          <div class="chip-row">
+            ${siteContent.skills.map((skill) => `<span class="chip">${escapeHtml(skill)}</span>`).join("")}
+          </div>
+        </aside>
+      </section>
+
+      <section id="assistant" class="panel assistant assistant-panel">
           <div class="assistant-head">
             <div>
-              <p class="panel-kicker">Assistant Workspace</p>
-              <h2>直接开问</h2>
-              <p class="section-summary">这里是网站的实际工作区。你可以直接提问、上传 PDF、查看引用来源，或者清空当前会话重新开始。</p>
+              <p class="panel-kicker">Ask Me</p>
+              <h2>和这个网站直接对话</h2>
+              <p class="section-summary">如果你不想自己读完整页内容，可以直接提问。它会基于我的资料、项目和你上传的文档来回答。</p>
               <div class="status-group">
                 <span id="knowledge-status" class="status-chip">当前模式：初始化中</span>
                 <span id="session-status" class="status-chip subtle">会话记忆：初始化中</span>
@@ -194,7 +277,7 @@ function renderApp(siteContent: SiteContent) {
             <div class="actions">
               <label class="upload">
                 <input id="resume-upload" type="file" accept=".pdf" />
-                <span>上传 PDF</span>
+                <span>上传文档</span>
               </label>
               <button id="clear-upload" type="button">清空上传</button>
               <button id="clear-session" type="button">清空会话</button>
@@ -209,48 +292,6 @@ function renderApp(siteContent: SiteContent) {
             <textarea id="chat-input" rows="4" placeholder="例如：你做过哪些 AI 项目？这个问答助手的链路是怎么设计的？"></textarea>
             <button id="send-button" type="submit">开始提问</button>
           </form>
-        </article>
-
-        <aside class="workspace-side">
-          <section class="panel side-panel">
-            <div class="panel-head">
-              <div>
-                <p class="panel-kicker">Capability Matrix</p>
-                <h2>核心技术栈</h2>
-              </div>
-            </div>
-            <div class="chip-row">
-              ${siteContent.skills.map((skill) => `<span class="chip">${escapeHtml(skill)}</span>`).join("")}
-            </div>
-          </section>
-
-          <section class="panel side-panel">
-            <div class="panel-head">
-              <div>
-                <p class="panel-kicker">Use Cases</p>
-                <h2>使用方式</h2>
-              </div>
-            </div>
-            <div class="notes-list">
-              <div class="note-card">
-                <strong>问我本人</strong>
-                <p>默认模式会围绕我的个人经历、项目背景和技术栈进行回答。</p>
-              </div>
-              <div class="note-card">
-                <strong>问上传文档</strong>
-                <p>上传 PDF 后，系统会优先围绕当前文档检索并给出引用片段。</p>
-              </div>
-              <div class="note-card">
-                <strong>连续追问</strong>
-                <p>当前浏览器会话内保留短期上下文，适合轻量多轮对话。</p>
-              </div>
-              <div class="note-card">
-                <strong>资源约束</strong>
-                <p>整个系统按小规格服务器设计，优先实用、稳定和可维护。</p>
-              </div>
-            </div>
-          </section>
-        </aside>
       </section>
     </div>
   `;
