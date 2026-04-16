@@ -12,6 +12,7 @@ from app.ingestion.pipeline import ResumeIngestionPipeline
 from app.memory.service import session_memory_service
 from app.runtime.guards import BusyError, chat_guard, upload_guard
 from app.uploads.service import UploadKnowledgeBaseService
+from app.web.content import get_site_content
 
 router = APIRouter()
 
@@ -111,6 +112,35 @@ class UploadRuntimeSnapshot(BaseModel):
     busy: bool
 
 
+class SiteProfileResponse(BaseModel):
+    name: str
+    title: str
+    tagline: str
+    location: str
+    email: str
+    phone: str
+
+
+class ExperienceItemResponse(BaseModel):
+    period: str
+    company: str
+    role: str
+    summary: str
+
+
+class ProjectItemResponse(BaseModel):
+    name: str
+    stack: str
+    description: str
+
+
+class SiteContentResponse(BaseModel):
+    profile: SiteProfileResponse
+    experience: list[ExperienceItemResponse]
+    projects: list[ProjectItemResponse]
+    skills: list[str]
+
+
 upload_kb_service = UploadKnowledgeBaseService()
 
 
@@ -163,6 +193,11 @@ def upload_status() -> UploadStatusResponse:
 @router.get("/runtime_status", response_model=RuntimeStatusResponse)
 def runtime_status() -> RuntimeStatusResponse:
     return RuntimeStatusResponse(**_build_runtime_status())
+
+
+@router.get("/site_content", response_model=SiteContentResponse)
+def site_content() -> SiteContentResponse:
+    return SiteContentResponse(**get_site_content())
 
 
 @router.delete("/upload_status", response_model=UploadStatusResponse)

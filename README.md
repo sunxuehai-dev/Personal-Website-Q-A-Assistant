@@ -8,6 +8,7 @@
 - 流式回答
 - 轻量会话记忆
 - 小机器可用的基础运行时保护
+- 独立 `frontend/` 前端工程骨架
 
 项目定位不是做复杂通用 Agent 平台，而是做成“麻雀虽小，五脏俱全”的个人网站问答助手。
 
@@ -37,6 +38,13 @@ http://127.0.0.1:8008/
 
 ```bash
 .venv\Scripts\python -m pip install -r requirements-dev.txt
+```
+
+前端骨架安装依赖：
+
+```bash
+cd frontend
+npm.cmd install
 ```
 
 ## 核心能力
@@ -119,6 +127,13 @@ http://127.0.0.1:8008/
 
 ```bash
 .venv\Scripts\python -m pytest
+```
+
+前端骨架构建验证：
+
+```bash
+cd frontend
+npm.cmd run build
 ```
 
 当前 smoke test 已覆盖：

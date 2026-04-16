@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ profile.name }} | {{ profile.title }}</title>
+    <title>Resume Assistant | Personal Website</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700;800&family=Space+Grotesk:wght@500;700&display=swap" rel="stylesheet">
@@ -15,8 +15,8 @@
             <a class="brand" href="#overview">
                 <span class="brand-mark">SX</span>
                 <span class="brand-copy">
-                    <strong>{{ profile.name }}</strong>
-                    <small>{{ profile.title }}</small>
+                    <strong id="brand-name">加载中</strong>
+                    <small id="brand-title">正在初始化站点内容</small>
                 </span>
             </a>
             <nav class="nav">
@@ -45,8 +45,8 @@
                 <div class="hero-side">
                     <div class="status-tile">
                         <p class="tile-label">Operator</p>
-                        <strong>{{ profile.name }}</strong>
-                        <span>{{ profile.location }}</span>
+                        <strong id="operator-name">加载中</strong>
+                        <span id="operator-location">正在获取位置</span>
                     </div>
                     <div class="status-tile">
                         <p class="tile-label">Focus</p>
@@ -55,8 +55,8 @@
                     </div>
                     <div class="status-tile">
                         <p class="tile-label">Contact</p>
-                        <strong>{{ profile.email }}</strong>
-                        <span>{{ profile.phone }}</span>
+                        <strong id="operator-email">加载中</strong>
+                        <span id="operator-phone">加载中</span>
                     </div>
                 </div>
             </section>
@@ -71,11 +71,11 @@
                         <img
                             class="portrait-image"
                             src="{{ url_for('static', path='/images/profile.jpg') }}"
-                            alt="{{ profile.name }}"
+                            alt="profile portrait"
                         >
                         <div class="profile-copy">
-                            <h2>{{ profile.name }}</h2>
-                            <p>{{ profile.tagline }}</p>
+                            <h2 id="profile-name">加载中</h2>
+                            <p id="profile-tagline">正在获取个人简介</p>
                         </div>
                     </div>
                 </article>
@@ -114,16 +114,7 @@
                     </div>
                     <span class="panel-badge">Timeline</span>
                 </div>
-                <div class="timeline-grid">
-                    {% for item in experience %}
-                    <article class="timeline-card">
-                        <p class="timeline-period">{{ item.period }}</p>
-                        <h4>{{ item.role }}</h4>
-                        <p class="timeline-company">{{ item.company }}</p>
-                        <p>{{ item.summary }}</p>
-                    </article>
-                    {% endfor %}
-                </div>
+                <div id="experience-list" class="timeline-grid"></div>
             </section>
 
             <section id="projects" class="panel reveal">
@@ -134,15 +125,7 @@
                     </div>
                     <span class="panel-badge">Modules</span>
                 </div>
-                <div class="project-grid">
-                    {% for item in projects %}
-                    <article class="project-card">
-                        <p class="project-stack">{{ item.stack }}</p>
-                        <h4>{{ item.name }}</h4>
-                        <p>{{ item.description }}</p>
-                    </article>
-                    {% endfor %}
-                </div>
+                <div id="project-list" class="project-grid"></div>
             </section>
 
             <section id="skills" class="panel reveal">
@@ -153,11 +136,7 @@
                     </div>
                     <span class="panel-badge">Stack</span>
                 </div>
-                <div class="skills-grid">
-                    {% for skill in skills %}
-                    <span>{{ skill }}</span>
-                    {% endfor %}
-                </div>
+                <div id="skill-list" class="skills-grid"></div>
             </section>
 
             <section id="assistant" class="assistant-panel reveal">
@@ -202,7 +181,9 @@
                     <div class="assistant-main">
                         <div id="chat-log" class="chat-log">
                             <div class="message assistant">
-                                你可以直接问我个人经历、项目、技能，也可以上传 PDF 后围绕那份文档继续提问。
+                                <div class="message-body">
+                                    你可以直接问我个人经历、项目、技能，也可以上传 PDF 后围绕那份文档继续提问。
+                                </div>
                             </div>
                         </div>
 
@@ -216,6 +197,6 @@
         </main>
     </div>
 
-    <script src="{{ url_for('static', path='/scripts/site.js') }}"></script>
+    <script type="module" src="{{ url_for('static', path='/scripts/site.js') }}"></script>
 </body>
 </html>

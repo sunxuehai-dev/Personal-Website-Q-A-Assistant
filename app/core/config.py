@@ -21,6 +21,9 @@ class Settings:
 
     BASE_DIR = BASE_DIR
     APP_DIR = BASE_DIR / "app"
+    FRONTEND_DIR = BASE_DIR / "frontend"
+    FRONTEND_DIST_DIR = FRONTEND_DIR / "dist"
+    HOME_RENDER_MODE = os.getenv("HOME_RENDER_MODE", "legacy").lower()
     DATA_DIR = BASE_DIR / "data"
     SELF_RESUME_DIR = DATA_DIR / "self_resume"
     UPLOAD_DIR = DATA_DIR / "uploads"
@@ -91,3 +94,7 @@ class Settings:
     @classmethod
     def is_production(cls) -> bool:
         return cls.ENVIRONMENT == "production"
+
+    @classmethod
+    def use_frontend_as_home(cls) -> bool:
+        return cls.HOME_RENDER_MODE == "frontend"

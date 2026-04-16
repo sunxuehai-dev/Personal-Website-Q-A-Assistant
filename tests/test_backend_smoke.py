@@ -208,6 +208,9 @@ class FakePersistentClient:
 
 
 def configure_temp_settings(tmp_path: Path) -> None:
+    Settings.FRONTEND_DIR = tmp_path / "frontend"
+    Settings.FRONTEND_DIST_DIR = Settings.FRONTEND_DIR / "dist"
+    Settings.HOME_RENDER_MODE = "legacy"
     Settings.DATA_DIR = tmp_path / "data"
     Settings.SELF_RESUME_DIR = Settings.DATA_DIR / "self_resume"
     Settings.UPLOAD_DIR = Settings.DATA_DIR / "uploads"
@@ -216,6 +219,7 @@ def configure_temp_settings(tmp_path: Path) -> None:
     Settings.UPLOAD_CHROMA_DIR = Settings.CHROMA_DIR / "uploaded_docs"
     Settings.SESSION_MEMORY_MAX_TURNS = 4
     Settings.ensure_directories()
+    Settings.FRONTEND_DIST_DIR.mkdir(parents=True, exist_ok=True)
 
 
 def patch_fake_llm(monkeypatch):
@@ -291,6 +295,34 @@ def test_api_smoke_without_network(tmp_path, monkeypatch):
     assert runtime_response.json()["chat"]["max_concurrent"] == 2
     assert runtime_response.json()["upload"]["busy"] is False
 
+    site_content_response = client.get("/site_content")
+    assert site_content_response.status_code == 200
+    assert site_content_response.json()["profile"]["name"] == "孙雪海"
+    assert len(site_content_response.json()["projects"]) >= 1
+
+    home_response = client.get("/")
+    assert home_response.status_code == 200
+    assert "id=\"experience-list\"" in home_response.text
+    assert "site.js" in home_response.text
+
+    frontend_index = Settings.FRONTEND_DIST_DIR / "index.html"
+    frontend_assets_dir = Settings.FRONTEND_DIST_DIR / "assets"
+    frontend_assets_dir.mkdir(parents=True, exist_ok=True)
+    frontend_asset = frontend_assets_dir / "app.js"
+    frontend_index.write_text(
+        "<!doctype html><html><body><div id='app'></div><script type='module' src='./assets/app.js'></script></body></html>",
+        encoding="utf-8",
+    )
+    frontend_asset.write_text("console.log('frontend ok');", encoding="utf-8")
+
+    frontend_response = client.get("/frontend")
+    assert frontend_response.status_code == 200
+    assert "<div id='app'></div>" in frontend_response.text
+
+    frontend_asset_response = client.get("/frontend/assets/app.js")
+    assert frontend_asset_response.status_code == 200
+    assert "frontend ok" in frontend_asset_response.text
+
     local_response = client.post(
         "/chat",
         json={"question": "你的个人网站是什么", "use_uploaded_docs": False},
@@ -324,6 +356,27 @@ def test_api_smoke_without_network(tmp_path, monkeypatch):
         for item in upload_chat_response.json()["references"]
         if item.get("source_kind") == "local"
     )
+
+
+def test_home_can_switch_to_frontend_build(tmp_path, monkeypatch):
+    configure_temp_settings(tmp_path)
+    session_memory_service._sessions.clear()
+
+    frontend_assets_dir = Settings.FRONTEND_DIST_DIR / "assets"
+    frontend_assets_dir.mkdir(parents=True, exist_ok=True)
+    frontend_index = Settings.FRONTEND_DIST_DIR / "index.html"
+    frontend_index.write_text(
+        "<!doctype html><html><body><div id='app'>frontend-home</div><script type='module' src='./assets/app.js'></script></body></html>",
+        encoding="utf-8",
+    )
+    (frontend_assets_dir / "app.js").write_text("console.log('frontend home');", encoding="utf-8")
+
+    Settings.HOME_RENDER_MODE = "frontend"
+    client = TestClient(create_app())
+
+    response = client.get("/")
+    assert response.status_code == 200
+    assert "frontend-home" in response.text
 
 
 def test_chat_stream_returns_sse_events(tmp_path, monkeypatch):
