@@ -72,7 +72,7 @@
       </section>
 
       <section class="content-grid">
-        <article id="projects" class="panel">
+        <article id="projects" class="panel projects-panel">
           <p class="panel-kicker">Selected Projects</p>
           <h2>代表项目</h2>
           <p class="section-note">聚焦已经落地或具备完整链路的项目，强调系统结构、检索质量与真实部署边界。</p>
@@ -87,31 +87,33 @@
           </div>
         </article>
 
-        <article class="panel experience-panel">
-          <p class="panel-kicker">Experience</p>
-          <h2>经历</h2>
-          <p class="section-note">经历更偏向产品与工程交叉视角，关注方案落地、接口稳定性和持续迭代能力。</p>
-          <div class="timeline">
-            ${e.experience.map(s=>`
-                  <div class="timeline-item">
-                    <span class="timeline-period">${r(s.period)}</span>
-                    <div class="timeline-content">
-                      <strong>${r(s.role)}</strong>
-                      <p>${r(s.company)}</p>
-                      <small>${r(s.summary)}</small>
+        <div class="side-stack">
+          <article class="panel experience-panel">
+            <p class="panel-kicker">Experience</p>
+            <h2>经历</h2>
+            <p class="section-note">经历更偏向产品与工程交叉视角，关注方案落地、接口稳定性和持续迭代能力。</p>
+            <div class="timeline">
+              ${e.experience.map(s=>`
+                    <div class="timeline-item">
+                      <span class="timeline-period">${r(s.period)}</span>
+                      <div class="timeline-content">
+                        <strong>${r(s.role)}</strong>
+                        <p>${r(s.company)}</p>
+                        <small>${r(s.summary)}</small>
+                      </div>
                     </div>
-                  </div>
-                `).join("")}
-          </div>
-        </article>
-      </section>
+                  `).join("")}
+            </div>
+          </article>
 
-      <section class="skills-section panel">
-        <p class="panel-kicker">Technology</p>
-        <h2>技术栈</h2>
-        <p class="section-note">围绕 Python、检索增强、前端交互与轻量部署展开，优先选择能稳定上线的组合。</p>
-        <div class="chip-row">
-          ${e.skills.map(s=>`<span class="chip">${r(s)}</span>`).join("")}
+          <section class="skills-section panel">
+            <p class="panel-kicker">Technology</p>
+            <h2>技术栈</h2>
+            <p class="section-note">围绕 Python、检索增强、前端交互与轻量部署展开，优先选择能稳定上线的组合。</p>
+            <div class="chip-row">
+              ${e.skills.map(s=>`<span class="chip">${r(s)}</span>`).join("")}
+            </div>
+          </section>
         </div>
       </section>
 
