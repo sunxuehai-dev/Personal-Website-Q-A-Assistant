@@ -162,8 +162,9 @@ def health_check() -> dict:
         "upload_dir": str(Settings.UPLOAD_DIR),
         "upload_collection": Settings.UPLOAD_COLLECTION_NAME,
         "llm_type": Settings.LLM_TYPE,
+        "embedding_type": Settings.EMBEDDING_TYPE,
         "chat_model": Settings.CHAT_MODEL_MAP.get(Settings.LLM_TYPE),
-        "embedding_model": Settings.EMBEDDING_MODEL_MAP.get(Settings.LLM_TYPE),
+        "embedding_model": Settings.EMBEDDING_MODEL_MAP.get(Settings.EMBEDDING_TYPE),
         "upload_status": upload_kb_service.get_status(),
         "runtime_status": _build_runtime_status(),
     }
@@ -173,13 +174,25 @@ def health_check() -> dict:
 def readiness_check() -> dict:
     Settings.ensure_directories()
     resume_files = sorted(Settings.SELF_RESUME_DIR.glob("*.pdf"))
-    llm_ready = bool(Settings.DASHSCOPE_API_KEY) if Settings.LLM_TYPE == "qwen" else bool(Settings.OPENAI_API_KEY)
-    ready = bool(resume_files) and llm_ready
+    chat_credentials_ready = (
+        bool(Settings.DASHSCOPE_API_KEY)
+        if Settings.LLM_TYPE == "qwen"
+        else bool(Settings.DEEPSEEK_API_KEY)
+        if Settings.LLM_TYPE == "deepseek"
+        else bool(Settings.OPENAI_API_KEY)
+    )
+    embedding_credentials_ready = (
+        bool(Settings.DASHSCOPE_API_KEY)
+        if Settings.EMBEDDING_TYPE == "qwen"
+        else bool(Settings.OPENAI_API_KEY)
+    )
+    ready = bool(resume_files) and chat_credentials_ready and embedding_credentials_ready
     return {
         "status": "ready" if ready else "not_ready",
         "checks": {
             "has_self_resume_pdf": bool(resume_files),
-            "llm_credentials_configured": llm_ready,
+            "chat_credentials_configured": chat_credentials_ready,
+            "embedding_credentials_configured": embedding_credentials_ready,
             "environment": Settings.ENVIRONMENT,
         },
     }

@@ -42,9 +42,12 @@ class Settings:
     SESSION_MEMORY_MAX_TURNS = int(os.getenv("SESSION_MEMORY_MAX_TURNS", "4"))
 
     LLM_TYPE = os.getenv("LLM_TYPE", "qwen").lower()
+    EMBEDDING_TYPE = os.getenv("EMBEDDING_TYPE", "qwen").lower()
 
     OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
     OPENAI_BASE_URL = os.getenv("OPENAI_BASE_URL")
+    DEEPSEEK_API_KEY = os.getenv("DEEPSEEK_API_KEY")
+    DEEPSEEK_BASE_URL = os.getenv("DEEPSEEK_BASE_URL", "https://api.deepseek.com")
 
     DASHSCOPE_API_KEY = os.getenv("DASHSCOPE_API_KEY")
     DASHSCOPE_BASE_URL = os.getenv(
@@ -53,6 +56,7 @@ class Settings:
     )
     QWEN_CHAT_MODEL = os.getenv("QWEN_CHAT_MODEL", "qwen-plus")
     QWEN_EMBEDDING_MODEL = os.getenv("QWEN_EMBEDDING_MODEL", "text-embedding-v3")
+    DEEPSEEK_CHAT_MODEL = os.getenv("DEEPSEEK_CHAT_MODEL", "deepseek-v4-flash")
     OPENAI_CHAT_MODEL = os.getenv("OPENAI_CHAT_MODEL", "gpt-4o-mini")
     OPENAI_EMBEDDING_MODEL = os.getenv("OPENAI_EMBEDDING_MODEL", "text-embedding-3-small")
 
@@ -62,6 +66,7 @@ class Settings:
     CHAT_MODEL_MAP = {
         "qwen": QWEN_CHAT_MODEL,
         "openai": OPENAI_CHAT_MODEL,
+        "deepseek": DEEPSEEK_CHAT_MODEL,
     }
     EMBEDDING_MODEL_MAP = {
         "qwen": QWEN_EMBEDDING_MODEL,

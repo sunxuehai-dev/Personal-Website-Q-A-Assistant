@@ -105,7 +105,11 @@ class ResponseSynthesizer:
         relevance: str,
         evidences: list[RetrievedEvidence],
     ) -> dict:
-        used_web_search = self._infer_used_web_search(question, relevance, evidences, "")
+        used_web_search = (
+            self._infer_used_web_search(question, relevance, evidences, "")
+            if Settings.LLM_TYPE == "qwen"
+            else False
+        )
         return {
             "source_badge": self._build_source_badge(bool(evidences), used_web_search),
             "used_local_context": bool(evidences),

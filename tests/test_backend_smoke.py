@@ -336,8 +336,8 @@ def test_api_smoke_without_network(tmp_path, monkeypatch):
         json={"question": "现在主流的agent框架有哪些", "use_uploaded_docs": False},
     )
     assert web_response.status_code == 200
-    assert web_response.json()["used_web_search"] is True
-    assert web_response.json()["source_badge"] == "结合联网信息"
+    assert web_response.json()["used_web_search"] is False
+    assert web_response.json()["source_badge"] == "通用回答"
 
     upload_response = client.post(
         "/upload_resume",

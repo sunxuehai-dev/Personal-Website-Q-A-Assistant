@@ -260,17 +260,23 @@ class ResumeQAService:
     ) -> list[RetrievedEvidence]:
         if source_scope == "self_resume":
             if method == "dense":
-                return self._dense_to_evidences(
-                    self.self_retriever.similarity_search_with_scores(analysis.question, top_k=limit),
-                    retrieval_method="dense",
-                )
+                try:
+                    return self._dense_to_evidences(
+                        self.self_retriever.similarity_search_with_scores(analysis.question, top_k=limit),
+                        retrieval_method="dense",
+                    )
+                except Exception:
+                    return self.self_keyword_retriever.search(analysis.question, analysis.query_terms, top_k=limit)
             return self.self_keyword_retriever.search(analysis.question, analysis.query_terms, top_k=limit)
 
         if method == "dense":
-            return self._dense_to_evidences(
-                self.upload_retriever.similarity_search_with_scores(analysis.question, top_k=limit),
-                retrieval_method="dense",
-            )
+            try:
+                return self._dense_to_evidences(
+                    self.upload_retriever.similarity_search_with_scores(analysis.question, top_k=limit),
+                    retrieval_method="dense",
+                )
+            except Exception:
+                return self.upload_keyword_retriever.search(analysis.question, analysis.query_terms, top_k=limit)
         return self.upload_keyword_retriever.search(analysis.question, analysis.query_terms, top_k=limit)
 
     def _encode_stream_event(self, event_type: str, payload: dict) -> str:
